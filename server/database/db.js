@@ -137,22 +137,22 @@ export async function initializeDatabase() {
   `);
 
   // Seed Admin và User mẫu nếu chưa có
-  const existingAdmin = await get(`SELECT id FROM users WHERE email = ?`, ['admin@booking.com']);
+  const existingAdmin = await get(`SELECT id FROM users WHERE email = ?`, ['admin@phenikaa.com']);
   if (!existingAdmin) {
     const adminHash = await bcrypt.hash('admin123', 10);
     const userHash = await bcrypt.hash('user123', 10);
 
     await run(
       `INSERT INTO users (name, email, password_hash, role, phone) VALUES (?, ?, ?, ?, ?)`,
-      ['Quản Trị Viên (Admin)', 'admin@booking.com', adminHash, 'admin', '0901234567']
+      ['Quản Trị Viên Phenikaa', 'admin@phenikaa.com', adminHash, 'admin', '0901234567']
     );
 
     await run(
       `INSERT INTO users (name, email, password_hash, role, phone) VALUES (?, ?, ?, ?, ?)`,
-      ['Nguyễn Thành Nam', 'khachhang@booking.com', userHash, 'user', '0987654321']
+      ['Khách Hàng Phenikaa', 'khachhang@phenikaa.com', userHash, 'user', '0987654321']
     );
 
-    console.log('✅ Đã tạo tài khoản mẫu: admin@booking.com (admin123) & khachhang@booking.com (user123)');
+    console.log('✅ Đã tạo tài khoản mẫu: admin@phenikaa.com (admin123) & khachhang@phenikaa.com (user123)');
   }
 
   // Seed khách sạn và phòng từ initialHotels nếu bảng hotels trống

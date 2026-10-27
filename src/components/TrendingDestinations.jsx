@@ -28,10 +28,13 @@ export default function TrendingDestinations({ onSelectDestination, language }) 
             <div className="dest-card featured" onClick={() => onSelectDestination(dest.name)}>
               <img src={dest.image} alt={dest.name} className="dest-card-img" />
               <div className="dest-card-overlay">
-                <span className="dest-card-tag">{dest.tag}</span>
+                <span className="dest-card-tag">
+                  {language === 'vi' ? dest.tag : (dest.tagEn || dest.tag)}
+                </span>
                 <div>
                   <div className="dest-card-title">
-                    {dest.name} <span style={{ fontSize: '18px' }}>{dest.flag}</span>
+                    {language === 'vi' ? dest.name : (dest.nameEn || dest.name)}{' '}
+                    <span style={{ fontSize: '18px' }}>{dest.flag}</span>
                   </div>
                   <div className="dest-card-count">
                     {dest.propertiesCount} {language === 'vi' ? 'chỗ nghỉ' : 'properties'}
@@ -50,10 +53,13 @@ export default function TrendingDestinations({ onSelectDestination, language }) 
             <div className="dest-card" onClick={() => onSelectDestination(dest.name)}>
               <img src={dest.image} alt={dest.name} className="dest-card-img" />
               <div className="dest-card-overlay">
-                <span className="dest-card-tag">{dest.tag}</span>
+                <span className="dest-card-tag">
+                  {language === 'vi' ? dest.tag : (dest.tagEn || dest.tag)}
+                </span>
                 <div>
                   <div className="dest-card-title">
-                    {dest.name} <span style={{ fontSize: '18px' }}>{dest.flag}</span>
+                    {language === 'vi' ? dest.name : (dest.nameEn || dest.name)}{' '}
+                    <span style={{ fontSize: '18px' }}>{dest.flag}</span>
                   </div>
                   <div className="dest-card-count">
                     {dest.propertiesCount} {language === 'vi' ? 'chỗ nghỉ' : 'properties'}

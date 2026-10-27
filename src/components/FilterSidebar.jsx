@@ -17,23 +17,23 @@ export default function FilterSidebar({
     });
   };
 
-  const handleAmenityToggle = (amenity) => {
+  const handleAmenityToggle = (amenityKey) => {
     setFilters(prev => {
-      const exists = prev.amenities.includes(amenity);
+      const exists = prev.amenities.includes(amenityKey);
       return {
         ...prev,
-        amenities: exists ? prev.amenities.filter(a => a !== amenity) : [...prev.amenities, amenity]
+        amenities: exists ? prev.amenities.filter(a => a !== amenityKey) : [...prev.amenities, amenityKey]
       };
     });
   };
 
   const amenitiesList = [
-    'Hồ bơi vô cực',
-    'WiFi miễn phí',
-    'Bữa sáng thượng hạng',
-    'Bãi biển riêng',
-    'Spa cao cấp',
-    'Phòng gym'
+    { key: 'Hồ bơi vô cực', vi: 'Hồ bơi vô cực', en: 'Infinity pool' },
+    { key: 'WiFi miễn phí', vi: 'WiFi miễn phí', en: 'Free WiFi' },
+    { key: 'Bữa sáng thượng hạng', vi: 'Bữa sáng thượng hạng', en: 'Premium breakfast' },
+    { key: 'Bãi biển riêng', vi: 'Bãi biển riêng', en: 'Private beach' },
+    { key: 'Spa cao cấp', vi: 'Spa cao cấp', en: 'Luxury spa' },
+    { key: 'Phòng gym', vi: 'Phòng gym', en: 'Fitness center' }
   ];
 
   return (
@@ -125,7 +125,7 @@ export default function FilterSidebar({
             {language === 'vi' ? 'Ngân sách tối đa' : 'Max budget'}
           </div>
           <span className="small text-primary fw-bold">
-            {(filters.maxPrice / 1000000).toFixed(1)} tr ₫
+            {(filters.maxPrice / 1000000).toFixed(1)} {language === 'vi' ? 'tr ₫' : 'M VND'}
           </span>
         </div>
         <Form.Range
@@ -136,8 +136,8 @@ export default function FilterSidebar({
           onChange={(e) => setFilters(prev => ({ ...prev, maxPrice: Number(e.target.value) }))}
         />
         <div className="d-flex justify-content-between small text-muted">
-          <span>1 tr ₫</span>
-          <span>15 tr ₫</span>
+          <span>{language === 'vi' ? '1 tr ₫' : '1M VND'}</span>
+          <span>{language === 'vi' ? '15 tr ₫' : '15M VND'}</span>
         </div>
       </div>
 
@@ -147,13 +147,13 @@ export default function FilterSidebar({
           {language === 'vi' ? 'Tiện nghi phổ biến' : 'Popular amenities'}
         </div>
         {amenitiesList.map(amenity => (
-          <div key={amenity} className="mb-2">
+          <div key={amenity.key} className="mb-2">
             <Form.Check
               type="checkbox"
-              id={`amenity-${amenity}`}
-              checked={filters.amenities.includes(amenity)}
-              onChange={() => handleAmenityToggle(amenity)}
-              label={amenity}
+              id={`amenity-${amenity.key}`}
+              checked={filters.amenities.includes(amenity.key)}
+              onChange={() => handleAmenityToggle(amenity.key)}
+              label={language === 'vi' ? amenity.vi : amenity.en}
             />
           </div>
         ))}

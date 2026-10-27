@@ -2,6 +2,76 @@ import React from 'react';
 import { Row, Col, Badge } from 'react-bootstrap';
 import { formatPrice } from '../utils/formatPrice';
 
+const reviewWordMap = {
+  'Xuất sắc': 'Exceptional',
+  'Tuyệt hảo': 'Superb',
+  'Tuyệt vời': 'Wonderful',
+  'Rất tốt': 'Very Good',
+  'Tốt': 'Good',
+  'Hài lòng': 'Pleasant'
+};
+
+const badgeMap = {
+  'Khu nghỉ dưỡng 5 sao sang trọng bậc nhất': 'Top Luxury 5-Star Resort',
+  'Khách sạn di sản lịch sử': 'Historic Heritage Hotel',
+  'Tuyệt tác vịnh biển': 'Oceanfront Masterpiece',
+  'Nghỉ dưỡng sang trọng bên biển': 'Luxury Beachside Resort',
+  'Khách sạn Pháp cổ điển cao cấp': 'French Colonial Boutique',
+  'Biệt thự đồi thông lãng mạn': 'Romantic Pine Hill Villa',
+  'Khách sạn trung tâm cao cấp': 'Premium City Center Hotel',
+  'Khu nghỉ dưỡng bãi Dài biệt lập': 'Exclusive Secluded Resort'
+};
+
+const cityTranslationMap = {
+  'Đà Nẵng': 'Da Nang',
+  'Hà Nội': 'Hanoi',
+  'TP. Hồ Chí Minh': 'Ho Chi Minh City',
+  'Phú Quốc': 'Phu Quoc',
+  'Đà Lạt': 'Da Lat',
+  'Nha Trang': 'Nha Trang',
+  'Hội An': 'Hoi An',
+  'Sa Pa': 'Sa Pa',
+  'Vũng Tàu': 'Vung Tau'
+};
+
+const translateDistance = (dist, lang) => {
+  if (lang === 'vi' || !dist) return dist;
+  return dist
+    .replace('Cách trung tâm', 'Distance from center:')
+    .replace('Giáp biển', 'Beachfront')
+    .replace('Gần Nhà Hát Lớn', 'Near Opera House')
+    .replace('Gần Bãi biển Mỹ Khê', 'Near My Khe Beach')
+    .replace('Sát bờ biển Bãi Dài', 'Direct Bai Dai Beach access')
+    .replace('Gần Hồ Hoàn Kiếm', 'Near Hoan Kiem Lake')
+    .replace('Cạnh Hồ Tuyền Lâm', 'Next to Tuyen Lam Lake')
+    .replace('Gần Bến Bạch Đằng & Phố Đi Bộ', 'Near Bach Dang Wharf & Walking St.')
+    .replace('Bãi Trường', 'Truong Beach');
+};
+
+const translateRoomType = (roomType, lang) => {
+  if (lang === 'vi' || !roomType) return roomType || 'Phòng Tiêu Chuẩn';
+  return roomType
+    .replace('Phòng Classic King Terrace Biển', 'Classic King Ocean Terrace Room')
+    .replace('Phòng King Nhìn Ra Biển Có Ban Công Riêng', 'Oceanview King Room with Balcony')
+    .replace('Phòng Luxury Cánh Cổ Điển Heritage Wing', 'Luxury Heritage Wing Room')
+    .replace('Phòng Suite Hướng Vịnh Ban Công Lớn', 'Bayview Suite with Large Balcony')
+    .replace('Biệt Thự 1 Phòng Ngủ Hồ Bơi Riêng Bên Biển', '1-Bedroom Beachfront Pool Villa')
+    .replace('Phòng Classic Ban Công Phố Cổ', 'Classic Old Quarter Balcony Room')
+    .replace('Phòng Premier Deluxe Đồi Thông Lãng Mạn', 'Premier Deluxe Romantic Pine Hill Room')
+    .replace('Phòng Studio Căn Hộ Hướng Sông Sài Gòn', 'Saigon Riverview Studio Apartment')
+    .replace('Biệt Thự Biển Hoàng Hôn Hồ Bơi Vô Cực', 'Sunset Beachfront Infinity Pool Villa')
+    .replace('Phòng Tiêu Chuẩn', 'Standard Room');
+};
+
+const translateBedType = (bedType, lang) => {
+  if (lang === 'vi' || !bedType) return bedType || '1 giường đôi lớn';
+  return bedType
+    .replace('1 giường đôi cực lớn', '1 extra-large double bed')
+    .replace('1 giường đôi lớn hoặc 2 giường đơn', '1 large double bed or 2 single beds')
+    .replace('1 giường đôi lớn', '1 large double bed')
+    .replace('2 giường đơn', '2 single beds');
+};
+
 export default function HotelCard({
   hotel,
   currency,
@@ -37,7 +107,8 @@ export default function HotelCard({
                 className="position-absolute top-0 start-0 w-100 bg-danger text-white text-center py-1 fw-bold"
                 style={{ fontSize: '11px', zIndex: 2 }}
               >
-                <i className="bi bi-x-circle me-1"></i>HẾT PHÒNG TRONG KHOẢNG NGÀY NÀY
+                <i className="bi bi-x-circle me-1"></i>
+                {language === 'vi' ? 'HẾT PHÒNG TRONG KHOẢNG NGÀY NÀY' : 'SOLD OUT FOR SELECTED DATES'}
               </div>
             )}
           </div>
@@ -63,16 +134,16 @@ export default function HotelCard({
           <div className="d-flex flex-wrap align-items-center gap-2 mb-2" style={{ fontSize: '12px' }}>
             <span className="text-primary fw-medium cursor-pointer">
               <i className="bi bi-geo-alt-fill me-1 text-danger"></i>
-              {hotel.city}
+              {language === 'vi' ? hotel.city : (cityTranslationMap[hotel.city] || hotel.city)}
             </span>
             <span className="text-muted">·</span>
-            <span className="text-muted">{hotel.distance}</span>
+            <span className="text-muted">{translateDistance(hotel.distance, language)}</span>
             {hotel.beachDistance && (
               <>
                 <span className="text-muted">·</span>
                 <span className="text-success fw-semibold">
                   <i className="bi bi-water me-1"></i>
-                  {hotel.beachDistance}
+                  {language === 'vi' ? hotel.beachDistance : (hotel.beachDistance === 'Bãi biển riêng' ? 'Private beach' : hotel.beachDistance)}
                 </span>
               </>
             )}
@@ -92,15 +163,15 @@ export default function HotelCard({
                   display: 'inline-block'
                 }}
               >
-                {hotel.badge}
+                {language === 'vi' ? hotel.badge : (badgeMap[hotel.badge] || hotel.badge)}
               </span>
             </div>
           )}
 
           {/* Room Details */}
           <div className="border-start border-2 border-secondary ps-2 mb-2" style={{ fontSize: '12px' }}>
-            <div className="fw-bold text-dark">{hotel.roomType || 'Phòng Tiêu Chuẩn'}</div>
-            <div className="text-muted">{hotel.bedType || '1 giường đôi lớn'}</div>
+            <div className="fw-bold text-dark">{translateRoomType(hotel.roomType, language)}</div>
+            <div className="text-muted">{translateBedType(hotel.bedType, language)}</div>
           </div>
 
           {/* Inclusions & Policies */}
@@ -128,7 +199,8 @@ export default function HotelCard({
             <div className="mt-2">
               {isSoldOut ? (
                 <Badge bg="danger" className="p-1 px-2 fw-semibold">
-                  <i className="bi bi-x-circle me-1"></i>Đã kín tất cả các phòng
+                  <i className="bi bi-x-circle me-1"></i>
+                  {language === 'vi' ? 'Đã kín tất cả các phòng' : 'All rooms fully booked'}
                 </Badge>
               ) : availableRooms !== undefined && availableRooms <= 3 ? (
                 <div className="text-danger fw-semibold" style={{ fontSize: '11px' }}>
@@ -155,7 +227,7 @@ export default function HotelCard({
           <div className="d-flex align-items-center justify-content-end gap-2 text-end">
             <div>
               <div className="fw-bold text-dark" style={{ fontSize: '14px', lineHeight: 1.2 }}>
-                {hotel.reviewScoreWord}
+                {language === 'vi' ? hotel.reviewScoreWord : (reviewWordMap[hotel.reviewScoreWord] || hotel.reviewScoreWord || 'Superb')}
               </div>
               <small className="text-muted" style={{ fontSize: '11px' }}>
                 {(hotel.reviewCount || 100).toLocaleString()} {language === 'vi' ? 'đánh giá' : 'reviews'}
@@ -169,7 +241,7 @@ export default function HotelCard({
           {/* Price & Action */}
           <div className="text-end mt-3">
             <div className="text-muted" style={{ fontSize: '11px' }}>
-              {language === 'vi' ? `${nights} đêm, 2 người lớn` : `${nights} nights, 2 adults`}
+              {language === 'vi' ? `${nights} đêm, 2 người lớn` : `${nights} ${nights > 1 ? 'nights' : 'night'}, 2 adults`}
             </div>
             {hotel.originalPriceVND && (
               <div className="price-strike">

@@ -38,42 +38,17 @@ export default function AuthModal({ show, onHide, mode, setMode, onLoginSuccess,
     }
   };
 
-  const handleQuickLogin = async (presetEmail, presetPassword) => {
-    setEmail(presetEmail);
-    setPassword(presetPassword);
-    setError('');
-    setLoading(true);
-
-    try {
-      const res = await api.auth.login(presetEmail, presetPassword);
-      if (res && res.user) {
-        onLoginSuccess(res.user);
-        onHide();
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <Modal show={show} onHide={onHide} centered>
       <Modal.Header closeButton className="border-0 pb-0">
         <Modal.Title className="fw-bold fs-5">
           {mode === 'login'
-            ? (language === 'vi' ? 'Đăng nhập tài khoản' : 'Sign in to your account')
-            : (language === 'vi' ? 'Đăng ký tài khoản HotelBooking' : 'Register for HotelBooking')}
+            ? (language === 'vi' ? 'Đăng nhập tài khoản PhenikaaHotel' : 'Sign in to PhenikaaHotel')
+            : (language === 'vi' ? 'Đăng ký tài khoản PhenikaaHotel' : 'Register for PhenikaaHotel')}
         </Modal.Title>
       </Modal.Header>
 
       <Modal.Body className="p-4">
-        <p className="text-muted small mb-3">
-          {language === 'vi'
-            ? 'Xác thực bảo mật qua REST API & lưu trữ trực tiếp trong CSDL (SQLite/MySQL).'
-            : 'Authenticated via REST API & persistently stored in the database.'}
-        </p>
-
         {error && <Alert variant="danger" className="py-2 small">{error}</Alert>}
 
         <Form onSubmit={handleSubmit}>
@@ -140,37 +115,6 @@ export default function AuthModal({ show, onHide, mode, setMode, onLoginSuccess,
               language === 'vi' ? 'Tạo tài khoản' : 'Create account'
             )}
           </Button>
-
-          {/* Preset Quick Login Buttons */}
-          <div className="border-top pt-3 mb-3">
-            <div className="small fw-bold text-muted mb-2 text-uppercase" style={{ fontSize: '11px' }}>
-              {language === 'vi' ? 'Đăng nhập nhanh (Tài khoản CSDL):' : 'Quick demo accounts:'}
-            </div>
-            <div className="d-flex gap-2">
-              <Button
-                variant="outline-primary"
-                type="button"
-                size="sm"
-                className="w-50 py-1.5 fw-semibold d-flex align-items-center justify-content-center gap-1"
-                disabled={loading}
-                onClick={() => handleQuickLogin('khachhang@booking.com', 'user123')}
-              >
-                <i className="bi bi-person-fill"></i>
-                Khách hàng
-              </Button>
-              <Button
-                variant="outline-dark"
-                type="button"
-                size="sm"
-                className="w-50 py-1.5 fw-semibold d-flex align-items-center justify-content-center gap-1"
-                disabled={loading}
-                onClick={() => handleQuickLogin('admin@booking.com', 'admin123')}
-              >
-                <i className="bi bi-shield-lock-fill text-warning"></i>
-                Quản trị viên
-              </Button>
-            </div>
-          </div>
 
           <div className="text-center small text-muted">
             {mode === 'login' ? (

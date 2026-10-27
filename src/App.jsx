@@ -156,8 +156,10 @@ export default function App() {
     const code = bookingData.booking?.booking_code || 'BK-' + Math.floor(100000 + Math.random() * 900000);
     setBookingToast({
       show: true,
-      title: language === 'vi' ? 'Đặt phòng thành công & Đã lưu vào CSDL!' : 'Booking Confirmed & Saved!',
-      message: `${bookingData.hotel.name} · ${bookingData.room.name}. Đơn đặt đã được ghi nhận trong cơ sở dữ liệu. Nhấn "Đơn của tôi" trên thanh tiêu đề để xem lịch sử.`,
+      title: language === 'vi' ? 'Đặt phòng thành công & Đã lưu vào CSDL!' : 'Booking Confirmed & Saved to Database!',
+      message: language === 'vi'
+        ? `${bookingData.hotel.name} · ${bookingData.room.name}. Đơn đặt đã được ghi nhận trong CSDL. Xem trong "Đơn đặt phòng của tôi".`
+        : `${bookingData.hotel.name} · ${bookingData.room.name}. Reservation has been saved to the database. View under "My Bookings".`,
       code
     });
     // Cập nhật lại số lượng phòng trống của các khách sạn ngay lập tức
@@ -191,9 +193,17 @@ export default function App() {
         onLogout={() => {
           authStorage.clear();
           setUser(null);
+          setShowAdminDashboard(false);
+          setShowMyBookings(false);
         }}
         onOpenMyBookings={() => setShowMyBookings(true)}
-        onOpenAdminDashboard={() => setShowAdminDashboard(true)}
+        onOpenAdminDashboard={() => {
+          if (user?.role === 'admin') {
+            setShowAdminDashboard(true);
+          } else {
+            setAuthModal({ show: true, mode: 'login' });
+          }
+        }}
       />
 
       {/* Main Content */}
@@ -227,8 +237,8 @@ export default function App() {
               <div>
                 <h2 className="fw-bold fs-3 text-dark mb-1 d-flex align-items-center gap-2">
                   {activeSearchCity
-                    ? (language === 'vi' ? `${activeSearchCity}: tìm thấy ${hotels.length} chỗ nghỉ` : `${activeSearchCity}: ${hotels.length} properties found`)
-                    : (language === 'vi' ? 'Các chỗ nghỉ & Tình trạng phòng thực tế từ CSDL' : 'Featured stays & Live database availability')}
+                    ? (language === 'vi' ? `${activeSearchCity}: tìm thấy ${hotels.length} khách sạn & chỗ nghỉ` : `${activeSearchCity}: ${hotels.length} properties found`)
+                    : (language === 'vi' ? 'Hệ thống Khách sạn & Nghỉ dưỡng PhenikaaHotel' : 'PhenikaaHotel Stays & Resorts')}
                   {loadingHotels && <Spinner size="sm" animation="border" variant="primary" />}
                 </h2>
                 <p className="text-muted small mb-0">
@@ -279,19 +289,19 @@ export default function App() {
                 )}
                 {filters.propertyType !== 'all' && (
                   <Badge bg="secondary" className="p-2 fw-normal d-flex align-items-center gap-1">
-                    <span>Loại: {filters.propertyType}</span>
+                    <span>{language === 'vi' ? 'Loại: ' : 'Type: '}{filters.propertyType}</span>
                     <i className="bi bi-x cursor-pointer" onClick={() => setFilters(p => ({ ...p, propertyType: 'all' }))}></i>
                   </Badge>
                 )}
                 {filters.stars.map(st => (
                   <Badge key={st} bg="warning" text="dark" className="p-2 fw-normal d-flex align-items-center gap-1">
-                    <span>{st} sao</span>
+                    <span>{st} {language === 'vi' ? 'sao' : 'stars'}</span>
                     <i className="bi bi-x cursor-pointer" onClick={() => setFilters(p => ({ ...p, stars: p.stars.filter(s => s !== st) }))}></i>
                   </Badge>
                 ))}
                 {filters.freeCancellation && (
                   <Badge bg="success" className="p-2 fw-normal d-flex align-items-center gap-1">
-                    <span>Miễn phí hủy</span>
+                    <span>{language === 'vi' ? 'Miễn phí hủy' : 'Free cancellation'}</span>
                     <i className="bi bi-x cursor-pointer" onClick={() => setFilters(p => ({ ...p, freeCancellation: false }))}></i>
                   </Badge>
                 )}
@@ -318,7 +328,11 @@ export default function App() {
                 {loadingHotels && hotels.length === 0 ? (
                   <div className="text-center py-5 bg-white rounded-3 border">
                     <Spinner animation="border" variant="primary" />
-                    <p className="mt-2 text-muted">Đang kết nối CSDL và kiểm tra phòng trống...</p>
+                    <p className="mt-2 text-muted">
+                      {language === 'vi'
+                        ? 'Đang kết nối CSDL và kiểm tra phòng trống...'
+                        : 'Connecting to database & checking availability...'}
+                    </p>
                   </div>
                 ) : hotels.length > 0 ? (
                   hotels.map(hotel => (
@@ -391,14 +405,16 @@ export default function App() {
         onBookingsChanged={fetchHotelsFromApi}
       />
 
-      {/* Admin Dashboard Modal (Stats, Bookings Management, Hotel/Room Inventory) */}
-      <AdminDashboardModal
-        show={showAdminDashboard}
-        onHide={() => setShowAdminDashboard(false)}
-        currency={currency}
-        language={language}
-        onDataChanged={fetchHotelsFromApi}
-      />
+      {/* Admin Dashboard Modal (Chỉ cho phép hiển thị khi đã đăng nhập tài khoản Admin) */}
+      {user?.role === 'admin' && (
+        <AdminDashboardModal
+          show={showAdminDashboard}
+          onHide={() => setShowAdminDashboard(false)}
+          currency={currency}
+          language={language}
+          onDataChanged={fetchHotelsFromApi}
+        />
+      )}
 
       {/* Universal Booking Toast Notification */}
       <ToastContainer position="top-end" className="p-3 position-fixed" style={{ zIndex: 9999 }}>

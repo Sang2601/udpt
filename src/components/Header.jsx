@@ -22,7 +22,10 @@ export default function Header({
           <div className="d-flex align-items-center justify-content-between">
             {/* Logo */}
             <a href="#" className="booking-logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-              Hotel<span>Booking</span>
+              <span className="logo-icon">
+                <i className="bi bi-buildings-fill"></i>
+              </span>
+              <span>Phenikaa<span className="logo-hotel">Hotel</span></span>
             </a>
 
             {/* Right Nav Utilities */}
@@ -35,10 +38,10 @@ export default function Header({
                 </Dropdown.Toggle>
                 <Dropdown.Menu className="shadow-sm border">
                   <Dropdown.Item active={currency === 'VND'} onClick={() => setCurrency('VND')}>
-                    <strong>VND</strong> - Đồng Việt Nam (₫)
+                    <strong>VND</strong> - {language === 'vi' ? 'Đồng Việt Nam (₫)' : 'Vietnamese Dong (₫)'}
                   </Dropdown.Item>
                   <Dropdown.Item active={currency === 'USD'} onClick={() => setCurrency('USD')}>
-                    <strong>USD</strong> - Đô la Mỹ ($)
+                    <strong>USD</strong> - {language === 'vi' ? 'Đô la Mỹ ($)' : 'US Dollar ($)'}
                   </Dropdown.Item>
                 </Dropdown.Menu>
               </Dropdown>
@@ -59,28 +62,20 @@ export default function Header({
                 </Dropdown.Menu>
               </Dropdown>
 
-              {/* Button: Đơn đặt của tôi */}
-              <Button
-                variant="outline-light"
-                size="sm"
-                className="header-btn d-flex align-items-center gap-1.5 fw-semibold border-white border-opacity-25"
-                onClick={onOpenMyBookings}
-              >
-                <i className="bi bi-journal-bookmark-fill text-warning"></i>
-                <span className="d-none d-md-inline">{language === 'vi' ? 'Đơn của tôi' : 'My Bookings'}</span>
-              </Button>
-
-              {/* Button: Trang Quản Trị (Admin Panel) */}
-              <Button
-                variant={isAdmin ? 'warning' : 'outline-light'}
-                size="sm"
-                className={`header-btn d-flex align-items-center gap-1.5 fw-semibold ${isAdmin ? 'text-dark' : 'border-white border-opacity-25'}`}
-                onClick={onOpenAdminDashboard}
-                title="Quản lý khách sạn, phòng và toàn bộ đơn đặt trong CSDL"
-              >
-                <i className="bi bi-shield-lock-fill"></i>
-                <span className="d-none d-lg-inline">{language === 'vi' ? 'Trang Quản Trị' : 'Admin Panel'}</span>
-              </Button>
+              {/* Button: Trang Quản Trị (Chỉ hiển thị khi đã đăng nhập bằng tài khoản Admin) */}
+              {isAdmin && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="header-btn d-flex align-items-center gap-1.5 fw-semibold text-white shadow-sm"
+                  style={{ background: 'linear-gradient(135deg, var(--pka-orange) 0%, var(--pka-orange-hover) 100%)', border: 'none' }}
+                  onClick={onOpenAdminDashboard}
+                  title={language === 'vi' ? 'Quản lý khách sạn, phòng và toàn bộ đơn đặt trong CSDL' : 'Manage hotels, rooms, and bookings in database'}
+                >
+                  <i className="bi bi-shield-lock-fill"></i>
+                  <span>{language === 'vi' ? 'Trang Quản Trị' : 'Admin Panel'}</span>
+                </Button>
+              )}
 
               {/* Auth or User Profile */}
               {user ? (
@@ -91,18 +86,20 @@ export default function Header({
                         width: '32px',
                         height: '32px',
                         borderRadius: '50%',
-                        backgroundColor: isAdmin ? '#dc3545' : '#ffb700',
-                        color: isAdmin ? '#ffffff' : '#003580',
+                        backgroundColor: isAdmin ? '#dc3545' : 'var(--pka-orange)',
+                        color: '#ffffff',
                         fontWeight: 'bold',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
                       }}
                     >
                       {user.name.charAt(0).toUpperCase()}
                     </div>
                     <span className="fw-semibold d-none d-sm-inline">{user.name}</span>
                     {isAdmin && <Badge bg="danger" className="ms-1 small">Admin</Badge>}
+                    <i className="bi bi-chevron-down ms-1" style={{ fontSize: '11px' }}></i>
                   </Dropdown.Toggle>
                   <Dropdown.Menu className="shadow border" style={{ minWidth: '240px' }}>
                     <div className="px-3 py-2 border-bottom">
@@ -114,14 +111,16 @@ export default function Header({
                     </div>
 
                     <Dropdown.Item onClick={onOpenMyBookings} className="py-2">
-                      <i className="bi bi-journal-text me-2 text-primary"></i>
+                      <i className="bi bi-journal-text me-2" style={{ color: 'var(--pka-orange)' }}></i>
                       {language === 'vi' ? 'Đơn đặt phòng của tôi' : 'My Bookings'}
                     </Dropdown.Item>
 
-                    <Dropdown.Item onClick={onOpenAdminDashboard} className="py-2">
-                      <i className="bi bi-speedometer2 me-2 text-warning"></i>
-                      {language === 'vi' ? 'Bảng điều khiển quản trị' : 'Admin Dashboard'}
-                    </Dropdown.Item>
+                    {isAdmin && (
+                      <Dropdown.Item onClick={onOpenAdminDashboard} className="py-2">
+                        <i className="bi bi-speedometer2 me-2" style={{ color: 'var(--pka-navy)' }}></i>
+                        {language === 'vi' ? 'Bảng điều khiển quản trị' : 'Admin Dashboard'}
+                      </Dropdown.Item>
+                    )}
 
                     <Dropdown.Divider />
 
@@ -157,13 +156,8 @@ export default function Header({
       <div className="hero-section">
         <Container>
           <h1 className="hero-title">
-            {language === 'vi' ? 'Tìm khách sạn & Kiểm tra phòng trống theo ngày' : 'Find your next stay with real availability'}
+            {language === 'vi' ? 'PhenikaaHotel — Trải nghiệm lưu trú & Nghỉ dưỡng đẳng cấp' : 'PhenikaaHotel — Premium stays & Hospitality'}
           </h1>
-          <p className="hero-subtitle">
-            {language === 'vi'
-              ? 'Hệ thống kết nối trực tiếp CSDL (SQLite/MySQL/PostgreSQL) với kiểm tra phòng trống và lưu đơn theo thời gian thực.'
-              : 'Connected directly to relational database with real-time room availability & booking.'}
-          </p>
         </Container>
       </div>
     </header>

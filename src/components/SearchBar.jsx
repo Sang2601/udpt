@@ -64,6 +64,17 @@ export default function SearchBar({
     onSearch();
   };
 
+  const nights = React.useMemo(() => {
+    try {
+      const d1 = new Date(checkInDate);
+      const d2 = new Date(checkOutDate);
+      const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+      return diff > 0 ? diff : 1;
+    } catch {
+      return 1;
+    }
+  }, [checkInDate, checkOutDate]);
+
   return (
     <div className="search-container">
       <Container>
@@ -110,10 +121,10 @@ export default function SearchBar({
                         </div>
                         <div>
                           <div className="fw-semibold text-dark" style={{ fontSize: '14px' }}>
-                            {item.name}
+                            {language === 'vi' ? item.name : (item.nameEn || item.name)}
                           </div>
                           <div className="text-muted" style={{ fontSize: '12px' }}>
-                            {item.desc}
+                            {language === 'vi' ? item.desc : (item.descEn || item.desc)}
                           </div>
                         </div>
                       </div>
@@ -134,7 +145,7 @@ export default function SearchBar({
                     {checkInDate} — {checkOutDate}
                   </span>
                   <span className="search-text-sub">
-                    {language === 'vi' ? '2 đêm' : '2 nights'}
+                    {language === 'vi' ? `${nights} đêm` : `${nights} ${nights > 1 ? 'nights' : 'night'}`}
                   </span>
                 </div>
 
@@ -210,7 +221,7 @@ export default function SearchBar({
                   <span className="search-text-main">
                     {language === 'vi'
                       ? `${guests.adults} người lớn · ${guests.children} trẻ em · ${guests.rooms} phòng`
-                      : `${guests.adults} adults · ${guests.children} children · ${guests.rooms} room`}
+                      : `${guests.adults} ${guests.adults > 1 ? 'adults' : 'adult'} · ${guests.children} ${guests.children === 1 ? 'child' : 'children'} · ${guests.rooms} ${guests.rooms > 1 ? 'rooms' : 'room'}`}
                   </span>
                   <span className="search-text-sub">
                     {language === 'vi' ? 'Tùy chỉnh số lượng' : 'Customize occupancy'}

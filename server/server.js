@@ -583,6 +583,9 @@ app.patch('/api/bookings/:id/cancel', async (req, res) => {
 // 4. ADMIN DASHBOARD & MANAGEMENT (QUẢN TRỊ KHÁCH SẠN, PHÒNG VÀ ĐƠN)
 // ============================================================================
 
+// Bắt buộc xác thực quyền Admin cho tất cả các endpoint quản trị
+app.use('/api/admin', requireAdmin);
+
 // Thống kê tổng quan cho Admin Dashboard
 app.get('/api/admin/stats', async (req, res) => {
   try {

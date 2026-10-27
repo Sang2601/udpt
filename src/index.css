@@ -1,21 +1,41 @@
 :root {
-  --b-navy: #003580;
-  --b-navy-dark: #00224f;
-  --b-navy-light: #004cb8;
-  --b-blue: #006ce4;
-  --b-blue-hover: #0057b8;
-  --b-blue-subtle: #f0f6ff;
-  --b-yellow: #ffb700;
-  --b-yellow-dark: #e5a500;
-  --b-green: #008234;
-  --b-green-bg: #e8f5e9;
-  --b-red: #d4111e;
-  --b-bg-light: #f5f5f5;
-  --b-border: #e7e7e7;
-  --b-border-dark: #c6c6c6;
-  --b-text: #1a1a1a;
-  --b-text-secondary: #595959;
-  --b-text-muted: #6b6b6b;
+  /* ==========================================================================
+     PHENIKAA GROUP (PKA) BRAND IDENTITY COLORS
+     ========================================================================== */
+  --pka-navy: #002855;         /* Deep Phenikaa Navy Blue - Màu xanh uy tín & trí tuệ */
+  --pka-navy-dark: #001938;    /* Dark Navy for header/footer depth */
+  --pka-navy-light: #003B71;   /* Royal Blue Phenikaa */
+  --pka-blue-accent: #004F9E;  /* Secondary blue accent */
+  --pka-blue-subtle: #F0F4FA;  /* Nền xanh nhạt thanh lịch */
+  
+  --pka-orange: #F37021;       /* Phenikaa Signature Orange - Sắc cam đổi mới & bứt phá */
+  --pka-orange-hover: #D95A10; /* Cam đậm khi tương tác hover */
+  --pka-orange-light: #FF853E; /* Cam sáng */
+  --pka-orange-subtle: #FFF4EC;/* Nền cam nhạt tinh tế */
+  --pka-orange-glow: rgba(243, 112, 33, 0.35);
+
+  /* Mapping tokens */
+  --b-navy: var(--pka-navy);
+  --b-navy-dark: var(--pka-navy-dark);
+  --b-navy-light: var(--pka-navy-light);
+  --b-blue: var(--pka-navy-light);
+  --b-blue-hover: var(--pka-navy);
+  --b-blue-subtle: var(--pka-blue-subtle);
+  
+  --b-yellow: var(--pka-orange);        /* Khung tìm kiếm & điểm nhấn đổi sang Cam Phenikaa */
+  --b-yellow-dark: var(--pka-orange-hover);
+  --b-orange: var(--pka-orange);
+  --b-orange-hover: var(--pka-orange-hover);
+
+  --b-green: #059669;
+  --b-green-bg: #ECFDF5;
+  --b-red: #DC2626;
+  --b-bg-light: #F8FAFC;
+  --b-border: #E2E8F0;
+  --b-border-dark: #CBD5E1;
+  --b-text: #0F172A;
+  --b-text-secondary: #475569;
+  --b-text-muted: #64748B;
   --font-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -28,49 +48,83 @@ body {
   padding: 0;
   font-family: var(--font-base);
   color: var(--b-text);
-  background-color: #ffffff;
+  background-color: #F8FAFC;
   -webkit-font-smoothing: antialiased;
 }
 
 a {
-  color: var(--b-blue);
+  color: var(--pka-navy-light);
   text-decoration: none;
 }
 
 a:hover {
+  color: var(--pka-orange);
   text-decoration: underline;
 }
 
-/* Header Styles */
+/* Header Styles - Phenikaa Group Theme */
 .booking-header {
-  background-color: var(--b-navy);
+  background: linear-gradient(135deg, var(--pka-navy-dark) 0%, var(--pka-navy) 60%, var(--pka-navy-light) 100%);
   color: #ffffff;
+  border-bottom: 3px solid var(--pka-orange);
+  box-shadow: 0 4px 24px rgba(0, 40, 85, 0.3);
 }
 
 .booking-header-top {
-  padding: 12px 0 16px 0;
+  padding: 14px 0 16px 0;
 }
 
 .booking-logo {
-  font-size: 26px;
+  font-size: 25px;
   font-weight: 800;
   letter-spacing: -0.5px;
   color: #ffffff !important;
   text-decoration: none !important;
   display: flex;
   align-items: center;
+  gap: 10px;
 }
 
-.booking-logo span {
-  color: #006ce4;
+.booking-logo .logo-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--pka-orange) 0%, #FF853E 100%);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 20px;
+  box-shadow: 0 3px 10px var(--pka-orange-glow);
+}
+
+.booking-logo .logo-hotel {
+  color: var(--pka-orange) !important;
+}
+
+.booking-logo .logo-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  background-color: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  padding: 3px 8px;
+  border-radius: 4px;
 }
 
 .header-btn {
   font-weight: 500;
   font-size: 14px;
-  border-radius: 4px;
+  border-radius: 6px;
   padding: 8px 14px;
   transition: all 0.2s ease;
+}
+
+.header-btn.dropdown-toggle::after,
+.header-btn::after,
+.booking-header .dropdown-toggle::after {
+  display: none !important;
 }
 
 .header-btn-ghost {
@@ -80,20 +134,20 @@ a:hover {
 }
 
 .header-btn-ghost:hover {
-  background-color: rgba(255, 255, 255, 0.12);
+  background-color: rgba(255, 255, 255, 0.14);
   color: #ffffff;
 }
 
 .header-btn-white {
   background-color: #ffffff;
-  color: var(--b-blue);
+  color: var(--pka-navy);
   font-weight: 600;
   border: 1px solid transparent;
 }
 
 .header-btn-white:hover {
-  background-color: #f0f6ff;
-  color: var(--b-blue-hover);
+  background-color: var(--pka-orange-subtle);
+  color: var(--pka-orange);
 }
 
 /* Service Nav Tabs */
@@ -170,15 +224,15 @@ a:hover {
 }
 
 .search-bar-frame {
-  background-color: var(--b-yellow);
-  padding: 4px;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(90deg, var(--pka-orange) 0%, #FF853E 100%);
+  padding: 5px;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 40, 85, 0.22), 0 3px 10px var(--pka-orange-glow);
 }
 
 .search-bar-inner {
   background-color: #ffffff;
-  border-radius: 4px;
+  border-radius: 6px;
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
@@ -188,30 +242,35 @@ a:hover {
   flex: 1 1 240px;
   display: flex;
   align-items: center;
-  padding: 8px 16px;
+  padding: 10px 16px;
   gap: 12px;
   cursor: pointer;
   position: relative;
-  border-right: 4px solid var(--b-yellow);
+  border-right: 4px solid var(--pka-orange);
   background-color: #ffffff;
+  transition: background-color 0.15s ease;
+}
+
+.search-bar-segment:hover {
+  background-color: #FAFBFD;
 }
 
 .search-bar-segment:first-child {
-  border-top-left-radius: 4px;
-  border-bottom-left-radius: 4px;
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
 }
 
 .search-bar-segment.action-segment {
   flex: 0 0 auto;
   border-right: none;
-  padding: 4px 8px;
-  border-top-right-radius: 4px;
-  border-bottom-right-radius: 4px;
+  padding: 4px 6px;
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
 }
 
 .search-bar-segment i {
   font-size: 20px;
-  color: var(--b-text-secondary);
+  color: var(--pka-orange);
 }
 
 .search-input-field {
@@ -225,7 +284,7 @@ a:hover {
 }
 
 .search-input-field::placeholder {
-  color: var(--b-text-secondary);
+  color: var(--b-text-muted);
   font-weight: 400;
 }
 
@@ -237,7 +296,7 @@ a:hover {
 
 .search-text-main {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--b-text);
   white-space: nowrap;
 }
@@ -248,24 +307,28 @@ a:hover {
 }
 
 .btn-search-main {
-  background-color: var(--b-blue);
+  background: linear-gradient(135deg, var(--pka-orange) 0%, var(--pka-orange-hover) 100%);
   color: #ffffff;
-  font-size: 18px;
-  font-weight: 600;
-  padding: 12px 28px;
-  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 12px 30px;
+  border-radius: 6px;
   border: none;
-  transition: background-color 0.15s ease;
+  box-shadow: 0 4px 14px var(--pka-orange-glow);
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   height: 100%;
   min-height: 48px;
+  cursor: pointer;
 }
 
 .btn-search-main:hover {
-  background-color: var(--b-blue-hover);
+  background: linear-gradient(135deg, var(--pka-orange-hover) 0%, #C94C05 100%);
+  box-shadow: 0 6px 20px rgba(243, 112, 33, 0.45);
+  transform: translateY(-1px);
   color: #ffffff;
 }
 
@@ -295,18 +358,18 @@ a:hover {
 }
 
 .suggestion-item:hover {
-  background-color: #f0f6ff;
+  background-color: var(--pka-blue-subtle);
 }
 
 .suggestion-icon {
   width: 32px;
   height: 32px;
   border-radius: 6px;
-  background-color: #f2f4f7;
+  background-color: var(--pka-orange-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--b-navy);
+  color: var(--pka-orange);
   font-size: 16px;
 }
 
@@ -332,10 +395,10 @@ a:hover {
 .btn-counter {
   width: 36px;
   height: 36px;
-  border-radius: 4px;
-  border: 1px solid var(--b-blue);
+  border-radius: 6px;
+  border: 1px solid var(--pka-navy-light);
   background: #ffffff;
-  color: var(--b-blue);
+  color: var(--pka-navy);
   font-size: 18px;
   display: flex;
   align-items: center;
@@ -345,7 +408,9 @@ a:hover {
 }
 
 .btn-counter:hover:not(:disabled) {
-  background-color: var(--b-blue-subtle);
+  background-color: var(--pka-orange-subtle);
+  border-color: var(--pka-orange);
+  color: var(--pka-orange);
 }
 
 .btn-counter:disabled {
@@ -363,37 +428,39 @@ a:hover {
   font-size: 14px;
 }
 
-/* Genius Promo Banner */
+/* Genius / VIP Promo Banner */
 .genius-banner {
-  background: linear-gradient(90deg, #003580 0%, #00224f 100%);
+  background: linear-gradient(135deg, var(--pka-navy-dark) 0%, var(--pka-navy) 60%, var(--pka-navy-light) 100%);
+  border-left: 5px solid var(--pka-orange);
   border-radius: 12px;
   color: #ffffff;
   padding: 24px 28px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 53, 128, 0.15);
+  box-shadow: 0 6px 24px rgba(0, 40, 85, 0.2);
 }
 
 .genius-badge-pill {
-  background-color: var(--b-yellow);
-  color: #000000;
+  background: linear-gradient(135deg, var(--pka-orange) 0%, #FF853E 100%);
+  color: #ffffff;
   font-weight: 800;
   font-size: 13px;
-  padding: 4px 10px;
+  padding: 4px 12px;
   border-radius: 4px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   margin-bottom: 10px;
+  box-shadow: 0 2px 8px var(--pka-orange-glow);
 }
 
 /* Trending Destination Cards */
 .dest-card {
   position: relative;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
   height: 240px;
 }
@@ -404,7 +471,7 @@ a:hover {
 
 .dest-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 12px 28px rgba(0, 40, 85, 0.18);
 }
 
 .dest-card-img {
@@ -415,13 +482,13 @@ a:hover {
 }
 
 .dest-card:hover .dest-card-img {
-  transform: scale(1.05);
+  transform: scale(1.06);
 }
 
 .dest-card-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.75) 100%);
+  background: linear-gradient(180deg, rgba(0, 40, 85, 0.15) 0%, rgba(0, 25, 56, 0.82) 100%);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -430,13 +497,14 @@ a:hover {
 }
 
 .dest-card-tag {
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(243, 112, 33, 0.85);
   backdrop-filter: blur(4px);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   padding: 4px 10px;
   border-radius: 4px;
   align-self: flex-start;
+  color: #ffffff;
 }
 
 .dest-card-title {
@@ -455,16 +523,17 @@ a:hover {
 
 /* Property Types */
 .property-type-card {
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   border: 1px solid var(--b-border);
 }
 
 .property-type-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  border-color: var(--pka-orange);
+  box-shadow: 0 8px 20px rgba(0, 40, 85, 0.12);
 }
 
 .property-type-img {
@@ -490,19 +559,30 @@ a:hover {
   color: var(--b-text-secondary);
 }
 
-/* Hotel Card */
+/* Hotel Card - PhenikaaHotel Theme */
 .hotel-card {
   border: 1px solid var(--b-border);
-  border-radius: 8px;
+  border-radius: 10px;
   background-color: #ffffff;
   overflow: hidden;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.25s ease;
   margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 40, 85, 0.04);
 }
 
 .hotel-card:hover {
-  border-color: var(--b-blue);
-  box-shadow: 0 4px 16px rgba(0, 108, 228, 0.12);
+  border-color: var(--pka-orange);
+  box-shadow: 0 8px 24px rgba(0, 40, 85, 0.12);
+  transform: translateY(-2px);
+}
+
+.hotel-card h3 {
+  color: var(--pka-navy) !important;
+  transition: color 0.15s ease;
+}
+
+.hotel-card h3:hover {
+  color: var(--pka-orange) !important;
 }
 
 .hotel-img-container {
@@ -521,7 +601,7 @@ a:hover {
   position: absolute;
   top: 10px;
   right: 10px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   border: none;
   width: 36px;
   height: 36px;
@@ -530,7 +610,7 @@ a:hover {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   color: #595959;
   transition: all 0.2s ease;
 }
@@ -545,105 +625,113 @@ a:hover {
 }
 
 .genius-tag-inline {
-  background-color: var(--b-navy);
+  background: linear-gradient(135deg, var(--pka-navy) 0%, var(--pka-navy-light) 100%);
   color: #ffffff;
   font-size: 11px;
   font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 3px;
+  padding: 3px 8px;
+  border-radius: 4px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 
 .review-badge-box {
-  background-color: var(--b-navy);
+  background: linear-gradient(135deg, var(--pka-navy) 0%, var(--pka-navy-light) 100%);
   color: #ffffff;
   font-weight: 800;
   font-size: 16px;
-  width: 36px;
-  height: 36px;
-  border-radius: 6px 6px 6px 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px 8px 8px 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 40, 85, 0.25);
 }
 
 .price-strike {
   text-decoration: line-through;
-  color: var(--b-red);
+  color: var(--b-text-muted);
   font-size: 13px;
 }
 
 .price-active {
   font-size: 22px;
   font-weight: 800;
-  color: var(--b-text);
+  color: var(--pka-orange);
   line-height: 1.2;
 }
 
 .btn-check-avail {
-  background-color: var(--b-blue);
+  background: linear-gradient(135deg, var(--pka-orange) 0%, var(--pka-orange-hover) 100%);
   color: #ffffff;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 14px;
-  padding: 8px 18px;
-  border-radius: 4px;
+  padding: 9px 18px;
+  border-radius: 6px;
   border: none;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: background-color 0.15s ease;
+  box-shadow: 0 3px 10px var(--pka-orange-glow);
+  transition: all 0.2s ease;
 }
 
 .btn-check-avail:hover {
-  background-color: var(--b-blue-hover);
+  background: linear-gradient(135deg, var(--pka-orange-hover) 0%, #C94C05 100%);
   color: #ffffff;
+  box-shadow: 0 6px 16px rgba(243, 112, 33, 0.45);
+  transform: translateY(-1px);
 }
 
 /* Filter Box */
 .filter-box {
   background-color: #ffffff;
   border: 1px solid var(--b-border);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 10px;
+  padding: 18px;
+  box-shadow: 0 2px 8px rgba(0, 40, 85, 0.04);
 }
 
 .filter-title {
   font-size: 15px;
   font-weight: 700;
   margin-bottom: 12px;
-  color: var(--b-text);
+  color: var(--pka-navy);
 }
 
-/* Footer */
+/* Footer - Phenikaa Group Theme */
 .booking-footer {
-  background-color: #f5f5f5;
+  background-color: #F8FAFC;
   border-top: 1px solid var(--b-border);
   margin-top: 60px;
 }
 
 .footer-newsletter {
-  background-color: var(--b-navy-dark);
+  background: linear-gradient(135deg, var(--pka-navy-dark) 0%, var(--pka-navy) 100%);
   color: #ffffff;
-  padding: 44px 0;
+  padding: 48px 0;
   text-align: center;
+  border-top: 3px solid var(--pka-orange);
 }
 
 .footer-nav-top {
-  background-color: var(--b-navy);
+  background-color: var(--pka-navy);
   padding: 16px 0;
 }
 
 .footer-links-section {
-  padding: 36px 0 24px 0;
+  padding: 40px 0 28px 0;
 }
 
 .footer-heading {
   font-size: 14px;
   font-weight: 700;
-  margin-bottom: 12px;
-  color: var(--b-navy);
+  margin-bottom: 14px;
+  color: var(--pka-navy);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .footer-link-list {
@@ -657,12 +745,14 @@ a:hover {
 }
 
 .footer-link-list a {
-  color: var(--b-blue);
+  color: var(--pka-navy-light);
   font-size: 13px;
   text-decoration: none;
+  transition: color 0.15s ease;
 }
 
 .footer-link-list a:hover {
+  color: var(--pka-orange);
   text-decoration: underline;
 }
 
@@ -678,7 +768,54 @@ a:hover {
 }
 
 .gallery-thumbnail.active {
-  border-color: var(--b-blue);
+  border-color: var(--pka-orange);
+}
+
+/* Global Bootstrap overrides to Phenikaa Brand Colors */
+.btn-primary {
+  background: linear-gradient(135deg, var(--pka-orange) 0%, var(--pka-orange-hover) 100%) !important;
+  border-color: var(--pka-orange) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  box-shadow: 0 3px 8px var(--pka-orange-glow);
+}
+
+.btn-primary:hover, .btn-primary:focus {
+  background: linear-gradient(135deg, var(--pka-orange-hover) 0%, #C94C05 100%) !important;
+  border-color: var(--pka-orange-hover) !important;
+  color: #ffffff !important;
+}
+
+.btn-outline-primary {
+  color: var(--pka-navy) !important;
+  border-color: var(--pka-navy) !important;
+  font-weight: 600;
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--pka-navy) !important;
+  color: #ffffff !important;
+}
+
+.bg-primary {
+  background-color: var(--pka-navy) !important;
+}
+
+.text-primary {
+  color: var(--pka-navy) !important;
+}
+
+.border-primary {
+  border-color: var(--pka-orange) !important;
+}
+
+.badge.bg-primary {
+  background-color: var(--pka-navy) !important;
+}
+
+.form-check-input:checked {
+  background-color: var(--pka-orange) !important;
+  border-color: var(--pka-orange) !important;
 }
 
 @keyframes fadeIn {
@@ -695,7 +832,7 @@ a:hover {
   }
   .search-bar-segment {
     border-right: none;
-    border-bottom: 4px solid var(--b-yellow);
+    border-bottom: 4px solid var(--pka-orange);
   }
   .search-bar-segment.action-segment {
     border-bottom: none;

@@ -49,7 +49,7 @@ export default function MyBookingsModal({ show, onHide, user, currency, language
         setBookings([res.data]);
       }
     } catch (err) {
-      setError(err.message || 'Không tìm thấy đơn đặt phòng với mã này');
+      setError(err.message || (language === 'vi' ? 'Không tìm thấy đơn đặt phòng với mã này' : 'No reservation found with this code'));
     } finally {
       setLoading(false);
     }
@@ -58,7 +58,7 @@ export default function MyBookingsModal({ show, onHide, user, currency, language
   const handleCancelBooking = async (booking) => {
     const confirmText = language === 'vi'
       ? `Bạn có chắc chắn muốn hủy đơn đặt phòng #${booking.booking_code} tại "${booking.hotel_name}"?`
-      : `Are you sure you want to cancel booking #${booking.booking_code}?`;
+      : `Are you sure you want to cancel booking #${booking.booking_code} at "${booking.hotel_name}"?`;
 
     if (!window.confirm(confirmText)) return;
 
@@ -68,7 +68,7 @@ export default function MyBookingsModal({ show, onHide, user, currency, language
 
     try {
       const res = await api.bookings.cancel(booking.id);
-      setSuccessMsg(res.message || 'Đã hủy đơn đặt phòng thành công!');
+      setSuccessMsg(res.message || (language === 'vi' ? 'Đã hủy đơn đặt phòng thành công!' : 'Reservation cancelled successfully!'));
       await fetchBookings();
       if (onBookingsChanged) onBookingsChanged();
     } catch (err) {
@@ -81,11 +81,26 @@ export default function MyBookingsModal({ show, onHide, user, currency, language
   const getStatusBadge = (status) => {
     switch (status) {
       case 'confirmed':
-        return <Badge bg="success" className="px-2 py-1"><i className="bi bi-check-circle me-1"></i>Đã xác nhận</Badge>;
+        return (
+          <Badge bg="success" className="px-2 py-1">
+            <i className="bi bi-check-circle me-1"></i>
+            {language === 'vi' ? 'Đã xác nhận' : 'Confirmed'}
+          </Badge>
+        );
       case 'completed':
-        return <Badge bg="primary" className="px-2 py-1"><i className="bi bi-building-check me-1"></i>Đã hoàn thành</Badge>;
+        return (
+          <Badge bg="primary" className="px-2 py-1">
+            <i className="bi bi-building-check me-1"></i>
+            {language === 'vi' ? 'Đã hoàn thành' : 'Completed'}
+          </Badge>
+        );
       case 'cancelled':
-        return <Badge bg="danger" className="px-2 py-1"><i className="bi bi-x-circle me-1"></i>Đã hủy đơn</Badge>;
+        return (
+          <Badge bg="danger" className="px-2 py-1">
+            <i className="bi bi-x-circle me-1"></i>
+            {language === 'vi' ? 'Đã hủy đơn' : 'Cancelled'}
+          </Badge>
+        );
       default:
         return <Badge bg="secondary">{status}</Badge>;
     }
@@ -93,16 +108,16 @@ export default function MyBookingsModal({ show, onHide, user, currency, language
 
   return (
     <Modal show={show} onHide={onHide} size="xl" centered scrollable>
-      <Modal.Header closeButton className="border-bottom">
+      <Modal.Header closeButton className="border-bottom text-white" style={{ background: 'linear-gradient(135deg, var(--pka-navy-dark) 0%, var(--pka-navy) 100%)', borderBottom: '3px solid var(--pka-orange)' }}>
         <div>
-          <Modal.Title className="fw-bold fs-4 d-flex align-items-center gap-2">
-            <i className="bi bi-journal-text text-primary"></i>
-            {language === 'vi' ? 'Lịch sử & Quản lý đơn đặt phòng' : 'My Bookings & Reservations'}
+          <Modal.Title className="fw-bold fs-4 d-flex align-items-center gap-2 text-white">
+            <i className="bi bi-journal-text" style={{ color: 'var(--pka-orange)' }}></i>
+            {language === 'vi' ? 'PhenikaaHotel — Quản lý đơn đặt phòng' : 'PhenikaaHotel — My Reservations'}
           </Modal.Title>
-          <small className="text-muted">
+          <small className="text-white-50">
             {language === 'vi'
-              ? 'Dữ liệu được lưu trữ và truy vấn trực tiếp từ cơ sở dữ liệu (SQLite/MySQL).'
-              : 'Directly stored and queried from the relational database.'}
+              ? 'Dữ liệu được lưu trữ và truy vấn trực tiếp từ cơ sở dữ liệu hệ thống.'
+              : 'Directly stored and queried in real-time from the database.'}
           </small>
         </div>
       </Modal.Header>
@@ -114,12 +129,12 @@ export default function MyBookingsModal({ show, onHide, user, currency, language
             <div className="col-md-6">
               <Form onSubmit={handleLookupByCode}>
                 <Form.Label className="small fw-semibold text-muted mb-1">
-                  {language === 'vi' ? 'Tra cứu nhanh theo mã đơn (VD: BK-928174)' : 'Lookup by Booking Code'}
+                  {language === 'vi' ? 'Tra cứu nhanh theo mã đơn (VD: BK-928174)' : 'Lookup by Booking Code (e.g., BK-928174)'}
                 </Form.Label>
                 <InputGroup>
                   <Form.Control
                     type="text"
-                    placeholder="Nhập mã đơn (BK-xxxxxx)..."
+                    placeholder={language === 'vi' ? 'Nhập mã đơn (BK-xxxxxx)...' : 'Enter booking code (BK-xxxxxx)...'}
                     value={searchCode}
                     onChange={(e) => setSearchCode(e.target.value)}
                   />
@@ -165,13 +180,13 @@ export default function MyBookingsModal({ show, onHide, user, currency, language
             <Table hover className="align-middle mb-0">
               <thead className="table-light">
                 <tr>
-                  <th>Mã đơn</th>
-                  <th>Chỗ nghỉ & Loại phòng</th>
-                  <th>Thời gian lưu trú</th>
-                  <th>Thông tin khách</th>
-                  <th>Tổng thanh toán</th>
-                  <th>Trạng thái</th>
-                  <th className="text-center">Thao tác</th>
+                  <th>{language === 'vi' ? 'Mã đơn' : 'Code'}</th>
+                  <th>{language === 'vi' ? 'Chỗ nghỉ & Loại phòng' : 'Property & Room'}</th>
+                  <th>{language === 'vi' ? 'Thời gian lưu trú' : 'Stay Dates'}</th>
+                  <th>{language === 'vi' ? 'Thông tin khách' : 'Guest Details'}</th>
+                  <th>{language === 'vi' ? 'Tổng thanh toán' : 'Total'}</th>
+                  <th>{language === 'vi' ? 'Trạng thái' : 'Status'}</th>
+                  <th className="text-center">{language === 'vi' ? 'Thao tác' : 'Action'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -182,7 +197,7 @@ export default function MyBookingsModal({ show, onHide, user, currency, language
                         {b.booking_code}
                       </span>
                       <div className="text-muted small">
-                        {new Date(b.created_at).toLocaleDateString('vi-VN')}
+                        {new Date(b.created_at).toLocaleDateString(language === 'vi' ? 'vi-VN' : 'en-US')}
                       </div>
                     </td>
 
@@ -201,7 +216,7 @@ export default function MyBookingsModal({ show, onHide, user, currency, language
                         {b.check_in} <i className="bi bi-arrow-right text-muted mx-1"></i> {b.check_out}
                       </div>
                       <span className="badge bg-light text-dark border">
-                        {b.nights} đêm · {b.rooms_count} phòng
+                        {b.nights} {language === 'vi' ? 'đêm' : (b.nights > 1 ? 'nights' : 'night')} · {b.rooms_count} {language === 'vi' ? 'phòng' : (b.rooms_count > 1 ? 'rooms' : 'room')}
                       </span>
                     </td>
 
@@ -215,7 +230,9 @@ export default function MyBookingsModal({ show, onHide, user, currency, language
                       <div className="fw-bold text-dark fs-6">
                         {formatPrice(b.total_price_vnd, currency)}
                       </div>
-                      <small className="text-muted">Thanh toán tại chỗ nghỉ</small>
+                      <small className="text-muted">
+                        {language === 'vi' ? 'Thanh toán tại chỗ nghỉ' : 'Pay at property'}
+                      </small>
                     </td>
 
                     <td>{getStatusBadge(b.status)}</td>
@@ -231,11 +248,13 @@ export default function MyBookingsModal({ show, onHide, user, currency, language
                           {cancellingId === b.id ? (
                             <Spinner size="sm" animation="border" />
                           ) : (
-                            <><i className="bi bi-x-circle me-1"></i>Hủy phòng</>
+                            <><i className="bi bi-x-circle me-1"></i>{language === 'vi' ? 'Hủy phòng' : 'Cancel'}</>
                           )}
                         </Button>
                       ) : (
-                        <span className="text-muted small">Không khả dụng</span>
+                        <span className="text-muted small">
+                          {language === 'vi' ? 'Không khả dụng' : 'N/A'}
+                        </span>
                       )}
                     </td>
                   </tr>
@@ -252,7 +271,7 @@ export default function MyBookingsModal({ show, onHide, user, currency, language
             <p className="text-muted small">
               {language === 'vi'
                 ? 'Hãy thực hiện đặt phòng từ danh sách khách sạn hoặc tra cứu theo mã đơn BK-xxxxxx.'
-                : 'Book a room from the featured hotel list or look up using your booking code.'}
+                : 'Book a room from the property list or lookup using your booking code.'}
             </p>
           </div>
         )}

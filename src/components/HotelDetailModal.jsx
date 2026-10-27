@@ -3,6 +3,61 @@ import { Modal, Button, Row, Col, Form, Table, Alert, Badge, Spinner } from 'rea
 import { formatPrice } from '../utils/formatPrice';
 import { api } from '../services/api';
 
+const reviewWordMap = {
+  'Xuất sắc': 'Exceptional',
+  'Tuyệt hảo': 'Superb',
+  'Tuyệt vời': 'Wonderful',
+  'Rất tốt': 'Very Good',
+  'Tốt': 'Good',
+  'Hài lòng': 'Pleasant'
+};
+
+const amenityMap = {
+  'Hồ bơi vô cực': 'Infinity pool',
+  'WiFi miễn phí': 'Free WiFi',
+  'Bữa sáng thượng hạng': 'Premium breakfast',
+  'Spa cao cấp': 'Luxury spa',
+  'Bãi biển riêng': 'Private beach',
+  'Phòng gym': 'Fitness center',
+  'Đưa đón sân bay': 'Airport shuttle',
+  'Bể bơi nước ấm': 'Heated pool',
+  'Nhà hàng Pháp': 'French restaurant',
+  'Quán bar': 'Cocktail bar',
+  'Vườn nhiệt đới': 'Tropical garden',
+  'Hồ bơi vô cực ngắm hoàng hôn': 'Sunset infinity pool',
+  'Chèo kayak miễn phí': 'Free kayak',
+  'Lớp Yoga sáng': 'Morning Yoga',
+  'Bếp nướng BBQ': 'BBQ grill',
+  'Hồ bơi trẻ em': 'Kids pool',
+  'Rạp chiếu phim ngoài trời': 'Outdoor cinema',
+  'Dịch vụ quản gia': 'Butler service',
+  'Bể bơi tầng thượng': 'Rooftop pool',
+  'Nhà hàng tầng 20 view sông': '20th-floor riverview dining',
+  'Dịch vụ phòng 24/7': '24/7 room service'
+};
+
+const translateCapacity = (cap, lang) => {
+  if (lang === 'vi' || !cap) return cap;
+  return cap
+    .replace('người lớn', 'adults')
+    .replace('trẻ em', 'child')
+    .replace('1 adults', '1 adult');
+};
+
+const translateDistance = (dist, lang) => {
+  if (lang === 'vi' || !dist) return dist;
+  return dist
+    .replace('Cách trung tâm', 'From center:')
+    .replace('Giáp biển', 'Beachfront')
+    .replace('Gần Nhà Hát Lớn', 'Near Opera House')
+    .replace('Gần Bãi biển Mỹ Khê', 'Near My Khe Beach')
+    .replace('Sát bờ biển Bãi Dài', 'Direct Bai Dai Beach access')
+    .replace('Gần Hồ Hoàn Kiếm', 'Near Hoan Kiem Lake')
+    .replace('Cạnh Hồ Tuyền Lâm', 'Next to Tuyen Lam Lake')
+    .replace('Gần Bến Bạch Đằng & Phố Đi Bộ', 'Near Bach Dang Wharf & Walking St.')
+    .replace('Bãi Trường', 'Truong Beach');
+};
+
 export default function HotelDetailModal({
   hotel,
   show,
@@ -110,7 +165,11 @@ export default function HotelDetailModal({
     }
 
     if ((selectedRoom?.availableUnits ?? 1) <= 0) {
-      setBookingError(language === 'vi' ? 'Loại phòng này hiện đã hết trong khoảng ngày bạn chọn!' : 'This room is sold out for your selected dates!');
+      setBookingError(
+        language === 'vi'
+          ? 'Loại phòng này hiện đã hết trong khoảng ngày bạn chọn!'
+          : 'This room type is sold out for your selected dates!'
+      );
       return;
     }
 
@@ -148,7 +207,7 @@ export default function HotelDetailModal({
 
       onHide();
     } catch (err) {
-      setBookingError(err.message || 'Có lỗi xảy ra khi xử lý đơn đặt phòng.');
+      setBookingError(err.message || (language === 'vi' ? 'Có lỗi xảy ra khi xử lý đơn đặt phòng.' : 'An error occurred while booking.'));
     } finally {
       setSubmitting(false);
     }
@@ -170,7 +229,7 @@ export default function HotelDetailModal({
           </div>
           <small className="text-muted d-flex align-items-center gap-1 mt-1">
             <i className="bi bi-geo-alt-fill text-danger"></i>
-            {currentHotel.address} · <span className="text-primary fw-medium">{currentHotel.distance}</span>
+            {currentHotel.address} · <span className="text-primary fw-medium">{translateDistance(currentHotel.distance, language)}</span>
           </small>
         </div>
       </Modal.Header>
@@ -221,7 +280,7 @@ export default function HotelDetailModal({
                   className="badge bg-light text-dark border p-2 fw-medium d-flex align-items-center gap-1"
                 >
                   <i className="bi bi-check-circle-fill text-success"></i>
-                  {item}
+                  {language === 'vi' ? item : (amenityMap[item] || item)}
                 </span>
               ))}
             </div>
@@ -231,8 +290,12 @@ export default function HotelDetailModal({
             <div className="p-3 bg-light rounded-3 border">
               <div className="d-flex align-items-center justify-content-between mb-3">
                 <div>
-                  <div className="fw-bold">{currentHotel.reviewScoreWord}</div>
-                  <small className="text-muted">{currentHotel.reviewCount} {language === 'vi' ? 'đánh giá thực tế' : 'verified reviews'}</small>
+                  <div className="fw-bold">
+                    {language === 'vi' ? currentHotel.reviewScoreWord : (reviewWordMap[currentHotel.reviewScoreWord] || currentHotel.reviewScoreWord || 'Superb')}
+                  </div>
+                  <small className="text-muted">
+                    {currentHotel.reviewCount} {language === 'vi' ? 'đánh giá thực tế' : 'verified reviews'}
+                  </small>
                 </div>
                 <div className="review-badge-box fs-5">
                   {currentHotel.reviewScore}
@@ -248,11 +311,15 @@ export default function HotelDetailModal({
                   <span className="fw-semibold text-primary">{checkInDate}</span>
                   <i className="bi bi-arrow-right mx-2 text-muted"></i>
                   <span className="fw-semibold text-primary">{checkOutDate}</span>
-                  <span className="badge bg-secondary-subtle text-dark ms-2">{nights} đêm</span>
+                  <span className="badge bg-secondary-subtle text-dark ms-2">
+                    {nights} {language === 'vi' ? 'đêm' : (nights > 1 ? 'nights' : 'night')}
+                  </span>
                 </div>
                 <div className="small text-muted">
                   <i className="bi bi-check-circle-fill text-success me-1"></i>
-                  Hệ thống kiểm tra trực tiếp tình trạng phòng trống từ CSDL
+                  {language === 'vi'
+                    ? 'Hệ thống kiểm tra trực tiếp tình trạng phòng trống từ CSDL'
+                    : 'Live availability checked directly against database'}
                 </div>
               </div>
             </div>
@@ -275,7 +342,7 @@ export default function HotelDetailModal({
                   <th>{language === 'vi' ? 'Loại phòng' : 'Room type'}</th>
                   <th>{language === 'vi' ? 'Sức chứa' : 'Capacity'}</th>
                   <th>{language === 'vi' ? 'Tình trạng phòng' : 'Availability'}</th>
-                  <th>{language === 'vi' ? `Giá (${nights} đêm)` : `Price (${nights} nights)`}</th>
+                  <th>{language === 'vi' ? `Giá (${nights} đêm)` : `Price (${nights} ${nights > 1 ? 'nights' : 'night'})`}</th>
                   <th className="text-center">{language === 'vi' ? 'Lựa chọn' : 'Select'}</th>
                 </tr>
               </thead>
@@ -292,29 +359,34 @@ export default function HotelDetailModal({
                     >
                       <td>
                         <div className="fw-bold text-dark">{rm.name}</div>
-                        <small className="text-muted">Diện tích: {rm.size || '35 m²'}</small>
+                        <small className="text-muted">
+                          {language === 'vi' ? 'Diện tích:' : 'Size:'} {rm.size || '35 m²'}
+                        </small>
                       </td>
                       <td>
                         <i className="bi bi-person-fill text-muted me-1"></i>
-                        {rm.capacity}
+                        {translateCapacity(rm.capacity, language)}
                       </td>
                       <td>
                         {isSoldOut ? (
                           <Badge bg="danger" className="px-2 py-1">
-                            <i className="bi bi-x-circle me-1"></i>HẾT PHÒNG
+                            <i className="bi bi-x-circle me-1"></i>
+                            {language === 'vi' ? 'HẾT PHÒNG' : 'SOLD OUT'}
                           </Badge>
                         ) : availableUnits === 1 ? (
                           <Badge bg="warning" text="dark" className="px-2 py-1">
-                            <i className="bi bi-exclamation-triangle me-1"></i>Chỉ còn 1 phòng!
+                            <i className="bi bi-exclamation-triangle me-1"></i>
+                            {language === 'vi' ? 'Chỉ còn 1 phòng!' : 'Only 1 room left!'}
                           </Badge>
                         ) : (
                           <Badge bg="success" className="px-2 py-1">
-                            <i className="bi bi-check-circle me-1"></i>Còn {availableUnits} phòng trống
+                            <i className="bi bi-check-circle me-1"></i>
+                            {language === 'vi' ? `Còn ${availableUnits} phòng trống` : `${availableUnits} rooms available`}
                           </Badge>
                         )}
                         {rm.breakfast && (
                           <div className="text-success small fw-semibold mt-1">
-                            <i className="bi bi-check2"></i> Bao gồm ăn sáng
+                            <i className="bi bi-check2"></i> {language === 'vi' ? 'Bao gồm ăn sáng' : 'Breakfast included'}
                           </div>
                         )}
                       </td>
@@ -323,7 +395,7 @@ export default function HotelDetailModal({
                           {formatPrice((rm.priceVND || rm.price_vnd) * nights, currency)}
                         </div>
                         <small className="text-muted">
-                          {formatPrice(rm.priceVND || rm.price_vnd, currency)}/đêm
+                          {formatPrice(rm.priceVND || rm.price_vnd, currency)}/{language === 'vi' ? 'đêm' : 'night'}
                         </small>
                       </td>
                       <td className="text-center">
@@ -380,7 +452,7 @@ export default function HotelDetailModal({
 
               <Col md={4}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">Email nhận xác nhận *</Form.Label>
+                  <Form.Label className="small fw-semibold">{language === 'vi' ? 'Email nhận xác nhận *' : 'Confirmation Email *'}</Form.Label>
                   <Form.Control
                     type="email"
                     placeholder="example@gmail.com"
@@ -420,7 +492,7 @@ export default function HotelDetailModal({
               <Col md={12} className="pt-2">
                 <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
                   <div>
-                    <span className="text-muted small">{language === 'vi' ? `Tổng tiền (${nights} đêm): ` : `Total (${nights} nights): `}</span>
+                    <span className="text-muted small">{language === 'vi' ? `Tổng tiền (${nights} đêm): ` : `Total (${nights} ${nights > 1 ? 'nights' : 'night'}): `}</span>
                     <span className="fw-bold text-primary fs-4 ms-2">
                       {formatPrice(totalEstimatedPrice, currency)}
                     </span>
@@ -440,9 +512,9 @@ export default function HotelDetailModal({
                       disabled={submitting || (selectedRoom?.availableUnits ?? 1) <= 0}
                     >
                       {submitting ? (
-                        <><Spinner size="sm" animation="border" className="me-2" />Đang lưu vào CSDL...</>
+                        <><Spinner size="sm" animation="border" className="me-2" />{language === 'vi' ? 'Đang lưu vào CSDL...' : 'Saving reservation...'}</>
                       ) : (
-                        <><i className="bi bi-check2-circle me-1"></i>Xác nhận & Lưu đơn đặt</>
+                        <><i className="bi bi-check2-circle me-1"></i>{language === 'vi' ? 'Xác nhận & Lưu đơn đặt' : 'Confirm & Book Now'}</>
                       )}
                     </Button>
                   </div>
