@@ -22,8 +22,18 @@ export const authStorage = {
   }
 };
 
-// Fallback node URLs trong trường hợp Gateway chính ngắt kết nối
-const DIRECT_NODES = ['http://localhost:5001', 'http://localhost:5002', 'http://localhost:5003'];
+// Danh sách các cổng Node phân tán (Distributed Server Ports)
+// Bao gồm 5 cổng backend độc lập (5001, 5002, 5003, 5004, 5005) + cổng Gateway 5000
+const DISTRIBUTED_BACKEND_NODES = [
+  'http://localhost:5001',
+  'http://localhost:5002',
+  'http://localhost:5003',
+  'http://localhost:5004',
+  'http://localhost:5005',
+  'http://localhost:5000'
+];
+
+let roundRobinNodeIndex = 0;
 
 async function request(endpoint, options = {}) {
   const headers = {
@@ -36,10 +46,18 @@ async function request(endpoint, options = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // Danh sách URL cần thử (Bắt đầu với /api qua Gateway, sau đó là các Node dự phòng)
+  // Tăng chỉ số để luân chuyển đều các cổng theo Round-Robin
+  roundRobinNodeIndex = (roundRobinNodeIndex + 1) % DISTRIBUTED_BACKEND_NODES.length;
+
+  // Lập danh sách các cổng thử nghiệm: bắt đầu bằng cổng Round-Robin, sau đó là tất cả các cổng còn lại
+  const orderedNodes = [
+    ...DISTRIBUTED_BACKEND_NODES.slice(roundRobinNodeIndex),
+    ...DISTRIBUTED_BACKEND_NODES.slice(0, roundRobinNodeIndex)
+  ];
+
   const candidateUrls = [
-    `${API_BASE}${endpoint}`,
-    ...DIRECT_NODES.map(baseUrl => `${baseUrl}/api${endpoint}`)
+    ...orderedNodes.map(baseUrl => `${baseUrl}/api${endpoint}`),
+    `${API_BASE}${endpoint}`
   ];
 
   let lastError = null;
@@ -49,25 +67,8 @@ async function request(endpoint, options = {}) {
       const res = await fetch(url, { ...options, headers });
       const data = await res.json().catch(() => ({}));
 
-      // Bắt Header nhận diện Node phân tán từ phản hồi
-      const servedBy = res.headers.get('x-served-by');
-      const nodePort = res.headers.get('x-node-port');
-      const activeNodes = res.headers.get('x-cluster-active-nodes');
-
-      if (servedBy && typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('cluster-node-responded', {
-          detail: {
-            node: servedBy,
-            port: nodePort,
-            activeNodes: activeNodes,
-            endpoint: endpoint,
-            timestamp: new Date().toLocaleTimeString()
-          }
-        }));
-      }
-
       if (!res.ok) {
-        // Nếu lỗi 503 Service Unavailable hoặc 502 Bad Gateway từ cụm node, thử node tiếp theo
+        // Nếu cổng trả về 503 (sập/tắt) hoặc 502, lập tức thử sang cổng tiếp theo
         if (res.status === 503 || res.status === 502) {
           lastError = new Error(data.error || `HTTP ${res.status}`);
           continue;
@@ -79,12 +80,12 @@ async function request(endpoint, options = {}) {
       return data;
     } catch (err) {
       lastError = err;
-      // Nếu là lỗi mạng kết nối, tiếp tục thử sang node tiếp theo trong cụm
-      console.warn(`[Client-Failover] Kết nối tới ${url} thất bại, đang thử điểm cuối dự phòng...`, err.message);
+      // Khi 1 cổng bị tắt (TypeError: Failed to fetch / connection refused), tự động chuyển sang cổng kế tiếp
+      console.warn(`[Hệ Thống Phân Tán] ⚠️ Cổng ${url} đã bị tắt/ngắt kết nối! Tự động chuyển request sang cổng tiếp theo...`);
     }
   }
 
-  throw lastError || new Error('Không thể kết nối tới bất kỳ Node nào trong Cụm phân tán.');
+  throw lastError || new Error('Không thể kết nối tới bất kỳ cổng nào trong cụm phân tán.');
 }
 
 export const api = {

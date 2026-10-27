@@ -34,72 +34,67 @@
 
 ---
 
-## 🌐 Kiến trúc Ứng dụng Phân tán & Cơ chế Chịu lỗi (Môn Ứng dụng phân tán)
+---
 
-Hệ thống được thiết kế theo đúng mô hình **Kiến trúc phân tán chịu lỗi cao (High-Availability Fault-Tolerant Distributed Cluster)**:
+## 🌐 Kiến trúc Ứng dụng Phân tán & Cơ chế Chịu lỗi Đa Cổng (Môn Ứng dụng phân tán)
+
+Hệ thống được thiết kế theo đúng mô hình **Kiến trúc phân tán chịu lỗi cao (High-Availability Fault-Tolerant Distributed Cluster)** với **5 Cổng Backend độc lập**:
 
 ```
-[ Client Trình Duyệt / Frontend React (Port 5173) ]
-                     │ (Giao thức HTTP / REST API)
-                     ▼
-       ┌───────────────────────────────┐
-       │   API Gateway & Load Balancer │
-       │         (Port 5000)           │
-       │  - Cân bằng tải Round-Robin   │
-       │  - Heartbeat Health Check 1.5s│
-       │  - Tự động Failover < 50ms    │
-       └───────┬──────────────┬────────┘
-               │              │
-    ┌──────────┴──┐    ┌──────┴──────┐    ┌─────────────┐
-    │   Node-1    │    │   Node-2    │    │   Node-3    │
-    │ (Port 5001) │    │ (Port 5002) │    │ (Port 5003) │
-    └──────┬──────┘    └──────┬──────┘    └──────┬──────┘
-           │                  │                  │
-           └──────────────────┼──────────────────┘
-                              ▼
-        ┌──────────────────────────────────────────┐
-        │  Cơ sở Dữ liệu Tập trung Đồng thời       │
-        │  (SQLite WAL Concurrency Mode)           │
-        └──────────────────────────────────────────┘
+           [ Client Trình Duyệt / Frontend React (Port 5173) ]
+                    │                                 ▲
+                    │ (Tự động chuyển cổng Failover)  │
+                    ▼                                 │
+     ┌─────────────────────────────────────────────────────────────────┐
+     │  Cụm Máy Chủ Phân Tán (5 Cổng Backend Độc Lập + 1 Cổng Gateway) │
+     ├─────────────┬─────────────┬─────────────┬─────────────┬─────────┤
+     │   Cổng 5001 │   Cổng 5002 │   Cổng 5003 │   Cổng 5004 │Cổng 5005│
+     │  (Node-1)   │  (Node-2)   │  (Node-3)   │  (Node-4)   │(Node-5) │
+     └──────┬──────┴──────┬──────┴──────┬──────┴──────┬──────┴────┬────┘
+            │             │             │             │           │
+            └─────────────┴─────────────┼─────────────┴───────────┘
+                                        ▼
+                  ┌──────────────────────────────────────────┐
+                  │  Cơ sở Dữ liệu Tập trung Đồng thời       │
+                  │  (SQLite WAL Concurrency Mode)           │
+                  └──────────────────────────────────────────┘
 ```
 
-### 1. Nguyên lý phân tán & Chịu lỗi:
-1. **Đa tiến trình backend độc lập:** Chạy đồng thời 3 Node backend worker trên 3 cổng khác nhau (`5001`, `5002`, `5003`). Mỗi node là 1 tiến trình Node.js riêng biệt có PID riêng.
-2. **Cân bằng tải Round-Robin:** API Gateway phân phối đều các yêu cầu từ người dùng qua các Node đang hoạt động (Online).
-3. **Giám sát nhịp tim (Heartbeat 1.5s):** Gateway liên tục thăm dò trạng thái `/api/health` của từng Node. Nếu Node không phản hồi hoặc bị sập, Gateway lập tức loại Node đó ra khỏi danh sách định tuyến.
-4. **Chịu lỗi tức thì (Zero-Downtime Failover):** Khi một Node đang xử lý yêu cầu mà bất ngờ bị ngắt kết nối (crash/sập), Gateway ngay lập tức bắt lỗi mạng và chuyển tiếp nguyên vẹn request đó sang Node còn sống. **Người dùng không hề bị gián đoạn, không gặp màn hình lỗi!**
-5. **Đồng bộ dữ liệu an toàn:** Kích hoạt chế độ `PRAGMA journal_mode = WAL;` và `PRAGMA busy_timeout = 10000;`, cho phép nhiều Node cùng đọc ghi đồng thời vào CSDL mà không bị khóa (locking).
+### 1. Nguyên lý phân tán & Chịu lỗi Đa Cổng:
+1. **5 Cổng Backend độc lập:** Chạy đồng thời 5 Node backend worker trên 5 cổng khác nhau: **`5001`**, **`5002`**, **`5003`**, **`5004`**, **`5005`**. Mỗi node là 1 tiến trình Node.js riêng biệt.
+2. **Cân bằng tải Round-Robin giữa các cổng:** Client tự động luân chuyển đều các yêu cầu qua các cổng đang hoạt động.
+3. **Chịu lỗi tức thì khi tắt cổng (Zero-Downtime Multi-Port Failover):**
+   - Khi bất kỳ 1 cổng nào bị tắt (ví dụ tắt cổng `5001`), Client ngay lập tức phát hiện lỗi kết nối và tự động chuyển sang cổng tiếp theo (`5002`, `5003`, `5004`, `5005`) trong < 50ms.
+   - **Người dùng không hề bị gián đoạn, không gặp màn hình lỗi, website vẫn tìm kiếm và đặt phòng hoàn toàn bình thường!**
+4. **Đồng bộ dữ liệu an toàn:** Kích hoạt chế độ `PRAGMA journal_mode = WAL;` và `PRAGMA busy_timeout = 10000;`, cho phép cả 5 cổng cùng đọc ghi đồng thời vào CSDL mà không bị xung đột khóa (locking).
 
 ---
 
-## 🧪 Hướng dẫn Giảng viên Kiểm tra & Chấm điểm Phân tán
+## 🧪 Hướng dẫn Giảng viên Kiểm tra Tắt Cổng (Failover Test)
 
-Giảng viên có thể kiểm tra tính năng chịu lỗi của cụm theo 2 cách:
+Giảng viên có thể kiểm tra tắt bất kỳ cổng nào theo các bước:
 
-### Cách 1: Thử nghiệm trực quan trên Giao diện Web (Khuyên dùng)
-1. Mở web tại `http://localhost:5173/`.
-2. Trên thanh menu, quan sát nhãn: **`🟢 Cụm phân tán: 3/3 Node`**.
-3. Bấm vào nhãn này để mở **Bảng Giám Sát Cụm Phân Tán**.
-4. Bấm nút **`[🔴 Mô phỏng Sập Node]`** tại **Node-1** (Port 5001). Trạng thái Node-1 chuyển sang màu đỏ `OFFLINE`.
-5. Bấm nút **`[Gửi 5 Request Kiểm Tra Cân Bằng Tải]`** hoặc thực hiện tìm kiếm / đặt phòng:
-   - Hệ thống vẫn trả về kết quả 200 OK bình thường.
-   - Các request tự động được phục vụ bởi **Node-2** và **Node-3**.
-   - Số lần chuyển đổi dự phòng (**Failovers**) tăng lên minh chứng tính năng hoạt động.
-6. Bấm **`[🟢 Khôi phục Node]`** để kích hoạt lại Node-1. Cụm trở lại trạng thái `3/3 Node Online`.
+1. **Khởi chạy toàn bộ hệ thống phân tán:**
+   ```sh
+   npm run dev
+   ```
+   *(Lệnh này sẽ khởi động 5 cổng backend 5001, 5002, 5003, 5004, 5005, cổng Gateway 5000 và Frontend 5173)*
 
-### Cách 2: Tắt tiến trình thực tế bằng Terminal / Task Manager
-- **Chạy toàn bộ cụm:**
-  ```sh
-  npm run dev
-  ```
-  *(Khởi chạy Gateway + 3 Node backend + Frontend)*
-- Mở **Task Manager** trên Windows hoặc PowerShell:
-  - Tra cứu PID của Node-1 (được hiển thị trên cửa sổ terminal hoặc bảng giám sát web).
-  - Tắt Node-1 bằng lệnh:
-    ```powershell
-    Stop-Process -Id <PID_NODE1>
-    ```
-- Reload lại trang web hoặc thực hiện đặt phòng: **Trang web vẫn hoạt động bình thường nhờ Node-2 và Node-3!**
+2. **Mở website tại:** `http://localhost:5173/`
+   - Bấm F12 mở tab **Console** để theo dõi log điều hướng cổng phân tán.
+
+3. **Thực hiện tắt 1 cổng bất kỳ để kiểm tra:**
+   - Mở PowerShell hoặc Task Manager:
+     - Tắt tiến trình cổng 5001 (hoặc dùng `Stop-Process -Id <PID_PORT_5001>`).
+     - Hoặc nếu chạy từng cổng ở từng cửa sổ terminal riêng biệt: bấm `Ctrl + C` ở cửa sổ cổng 5001 để tắt.
+   - Quay lại trang web bấm **Tìm kiếm**, **Xem chi tiết khách sạn** hoặc **Đặt phòng**:
+     - **Kết quả:** Trang web **vẫn hoạt động bình thường 100%**, không hề bị sập!
+     - Trong Console sẽ hiển thị:
+       ```
+       [Hệ Thống Phân Tán] ⚠️ Cổng http://localhost:5001/api/... đã bị tắt! Tự động chuyển request sang cổng tiếp theo...
+       ```
+     - Request được cổng 5002 hoặc 5003 xử lý thành công ngay lập tức!
+   - Thầy có thể tiếp tục tắt thêm cổng 5002, 5003: Hệ thống vẫn tiếp tục chạy mượt mà trên cổng 5004, 5005!
 
 ---
 
@@ -107,12 +102,15 @@ Giảng viên có thể kiểm tra tính năng chịu lỗi của cụm theo 2 c
 
 | Lệnh | Ý nghĩa |
 | :--- | :--- |
-| `npm run dev` | Khởi chạy toàn bộ hệ thống phân tán: Gateway (5000), Node 1 (5001), Node 2 (5002), Node 3 (5003) và Frontend Vite (5173) |
-| `npm run cluster` | Chỉ chạy cụm backend phân tán (Gateway + 3 Node) |
-| `npm run gateway` | Chỉ chạy riêng API Gateway (Port 5000) |
-| `npm run node1` | Chạy riêng Node-1 (Port 5001) |
-| `npm run node2` | Chạy riêng Node-2 (Port 5002) |
-| `npm run node3` | Chạy riêng Node-3 (Port 5003) |
+| `npm run dev` | Khởi chạy toàn bộ cụm: 5 cổng backend (5001-5005), Gateway (5000) và Frontend Vite (5173) |
+| `npm run nodes` | Chạy đồng thời 5 cổng backend (5001, 5002, 5003, 5004, 5005) |
+| `npm run cluster` | Chạy 5 cổng backend + cổng Gateway 5000 |
+| `npm run node1` | Chạy riêng lẻ Cổng 5001 |
+| `npm run node2` | Chạy riêng lẻ Cổng 5002 |
+| `npm run node3` | Chạy riêng lẻ Cổng 5003 |
+| `npm run node4` | Chạy riêng lẻ Cổng 5004 |
+| `npm run node5` | Chạy riêng lẻ Cổng 5005 |
+| `npm run gateway` | Chạy riêng cổng Gateway (Port 5000) |
 | `npm run client` | Chạy riêng Frontend Vite (Port 5173) |
 | `npm run build` | Biên dịch bản tối ưu sản phẩm (Production Build) |
 

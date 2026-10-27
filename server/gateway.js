@@ -38,6 +38,28 @@ const CLUSTER_NODES = [
     lastLatencyMs: 0,
     lastChecked: null,
     pid: null
+  },
+  {
+    id: 'Node-4',
+    port: 5004,
+    url: 'http://127.0.0.1:5004',
+    status: 'UNKNOWN',
+    requestsCount: 0,
+    failuresCount: 0,
+    lastLatencyMs: 0,
+    lastChecked: null,
+    pid: null
+  },
+  {
+    id: 'Node-5',
+    port: 5005,
+    url: 'http://127.0.0.1:5005',
+    status: 'UNKNOWN',
+    requestsCount: 0,
+    failuresCount: 0,
+    lastLatencyMs: 0,
+    lastChecked: null,
+    pid: null
   }
 ];
 
