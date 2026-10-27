@@ -9,6 +9,7 @@ import HotelDetailModal from './components/HotelDetailModal';
 import AuthModal from './components/AuthModal';
 import MyBookingsModal from './components/MyBookingsModal';
 import AdminDashboardModal from './components/AdminDashboardModal';
+import ClusterMonitorModal from './components/ClusterMonitorModal';
 import Footer from './components/Footer';
 
 import { initialHotels } from './data/hotelsData';
@@ -63,6 +64,7 @@ export default function App() {
   const [authModal, setAuthModal] = useState({ show: false, mode: 'login' });
   const [showMyBookings, setShowMyBookings] = useState(false);
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
+  const [showClusterModal, setShowClusterModal] = useState(false);
   const [bookingToast, setBookingToast] = useState({ show: false, title: '', message: '', code: '' });
 
   const resultsRef = useRef(null);
@@ -204,6 +206,7 @@ export default function App() {
             setAuthModal({ show: true, mode: 'login' });
           }
         }}
+        onOpenClusterMonitor={() => setShowClusterModal(true)}
       />
 
       {/* Main Content */}
@@ -415,6 +418,13 @@ export default function App() {
           onDataChanged={fetchHotelsFromApi}
         />
       )}
+
+      {/* Distributed Cluster Monitor & Failover Testing Modal */}
+      <ClusterMonitorModal
+        show={showClusterModal}
+        onHide={() => setShowClusterModal(false)}
+        lang={language}
+      />
 
       {/* Universal Booking Toast Notification */}
       <ToastContainer position="top-end" className="p-3 position-fixed" style={{ zIndex: 9999 }}>

@@ -13,12 +13,15 @@ if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
 
-// Khởi tạo kết nối SQLite
+// Khởi tạo kết nối SQLite với chế độ đa tiến trình (WAL Mode & Busy Timeout)
 const db = new sqlite3.Database(DB_PATH, (err) => {
   if (err) {
     console.error('❌ Lỗi kết nối SQLite:', err.message);
   } else {
-    console.log('✅ Đã kết nối cơ sở dữ liệu SQLite:', DB_PATH);
+    db.run('PRAGMA journal_mode = WAL;');
+    db.run('PRAGMA busy_timeout = 10000;');
+    db.run('PRAGMA synchronous = NORMAL;');
+    console.log('✅ Đã kết nối cơ sở dữ liệu SQLite (Chế độ Phân tán WAL Concurrency):', DB_PATH);
   }
 });
 

@@ -4,10 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"node server/server.js\" \"vite\"",
-    "server": "node server/server.js",
+    "dev": "concurrently -n \"GW,NODE1,NODE2,NODE3,VITE\" -c \"magenta,blue,cyan,yellow,green\" \"node server/gateway.js\" \"node server/server.js 5001 Node-1\" \"node server/server.js 5002 Node-2\" \"node server/server.js 5003 Node-3\" \"vite\"",
+    "cluster": "concurrently -n \"GW,NODE1,NODE2,NODE3\" -c \"magenta,blue,cyan,yellow\" \"node server/gateway.js\" \"node server/server.js 5001 Node-1\" \"node server/server.js 5002 Node-2\" \"node server/server.js 5003 Node-3\"",
+    "gateway": "node server/gateway.js",
+    "node1": "node server/server.js 5001 Node-1",
+    "node2": "node server/server.js 5002 Node-2",
+    "node3": "node server/server.js 5003 Node-3",
+    "server": "node server/gateway.js",
     "client": "vite",
-    "start": "node server/server.js",
+    "start": "node server/gateway.js",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview"

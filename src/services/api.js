@@ -22,8 +22,10 @@ export const authStorage = {
   }
 };
 
+// Fallback node URLs trong trường hợp Gateway chính ngắt kết nối
+const DIRECT_NODES = ['http://localhost:5001', 'http://localhost:5002', 'http://localhost:5003'];
+
 async function request(endpoint, options = {}) {
-  const url = `${API_BASE}${endpoint}`;
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {})
@@ -34,15 +36,55 @@ async function request(endpoint, options = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(url, { ...options, headers });
-  const data = await res.json().catch(() => ({}));
+  // Danh sách URL cần thử (Bắt đầu với /api qua Gateway, sau đó là các Node dự phòng)
+  const candidateUrls = [
+    `${API_BASE}${endpoint}`,
+    ...DIRECT_NODES.map(baseUrl => `${baseUrl}/api${endpoint}`)
+  ];
 
-  if (!res.ok) {
-    const errorMsg = data.error || data.message || `Lỗi yêu cầu HTTP ${res.status}`;
-    throw new Error(errorMsg);
+  let lastError = null;
+
+  for (const url of candidateUrls) {
+    try {
+      const res = await fetch(url, { ...options, headers });
+      const data = await res.json().catch(() => ({}));
+
+      // Bắt Header nhận diện Node phân tán từ phản hồi
+      const servedBy = res.headers.get('x-served-by');
+      const nodePort = res.headers.get('x-node-port');
+      const activeNodes = res.headers.get('x-cluster-active-nodes');
+
+      if (servedBy && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('cluster-node-responded', {
+          detail: {
+            node: servedBy,
+            port: nodePort,
+            activeNodes: activeNodes,
+            endpoint: endpoint,
+            timestamp: new Date().toLocaleTimeString()
+          }
+        }));
+      }
+
+      if (!res.ok) {
+        // Nếu lỗi 503 Service Unavailable hoặc 502 Bad Gateway từ cụm node, thử node tiếp theo
+        if (res.status === 503 || res.status === 502) {
+          lastError = new Error(data.error || `HTTP ${res.status}`);
+          continue;
+        }
+        const errorMsg = data.error || data.message || `Lỗi yêu cầu HTTP ${res.status}`;
+        throw new Error(errorMsg);
+      }
+
+      return data;
+    } catch (err) {
+      lastError = err;
+      // Nếu là lỗi mạng kết nối, tiếp tục thử sang node tiếp theo trong cụm
+      console.warn(`[Client-Failover] Kết nối tới ${url} thất bại, đang thử điểm cuối dự phòng...`, err.message);
+    }
   }
 
-  return data;
+  throw lastError || new Error('Không thể kết nối tới bất kỳ Node nào trong Cụm phân tán.');
 }
 
 export const api = {
@@ -169,6 +211,18 @@ export const api = {
     deleteRoom: async (roomId) => {
       return await request(`/admin/rooms/${roomId}`, {
         method: 'DELETE'
+      });
+    }
+  },
+
+  // Distributed Cluster Management & Monitoring API
+  cluster: {
+    getStatus: async () => {
+      return await request('/cluster/status');
+    },
+    toggleNode: async (nodeId) => {
+      return await request(`/cluster/simulate-toggle/${nodeId}`, {
+        method: 'POST'
       });
     }
   }

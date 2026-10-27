@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Dropdown, Button, Badge } from 'react-bootstrap';
+import { api } from '../services/api';
 
 export default function Header({
   currency,
@@ -10,9 +11,47 @@ export default function Header({
   onOpenAuth,
   onLogout,
   onOpenMyBookings,
-  onOpenAdminDashboard
+  onOpenAdminDashboard,
+  onOpenClusterMonitor
 }) {
   const isAdmin = user?.role === 'admin';
+  const [clusterState, setClusterState] = useState({ active: 3, total: 3, status: 'HEALTHY', lastNode: '' });
+
+  // Theo dõi sức khỏe Cụm phân tán
+  useEffect(() => {
+    let isMounted = true;
+    const checkCluster = async () => {
+      try {
+        const res = await api.cluster.getStatus();
+        if (isMounted && res.gateway) {
+          setClusterState({
+            active: res.gateway.activeNodesCount,
+            total: res.gateway.totalNodesCount,
+            status: res.gateway.systemHealth,
+            lastNode: ''
+          });
+        }
+      } catch (e) {
+        // Silent catch
+      }
+    };
+
+    checkCluster();
+    const interval = setInterval(checkCluster, 3000);
+
+    const onResponded = (e) => {
+      if (isMounted && e.detail?.node) {
+        setClusterState(prev => ({ ...prev, lastNode: e.detail.node }));
+      }
+    };
+    window.addEventListener('cluster-node-responded', onResponded);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+      window.removeEventListener('cluster-node-responded', onResponded);
+    };
+  }, []);
 
   return (
     <header className="booking-header">
@@ -30,6 +69,42 @@ export default function Header({
 
             {/* Right Nav Utilities */}
             <div className="d-flex align-items-center gap-2">
+              {/* Distributed Cluster Monitor Pill */}
+              <button
+                type="button"
+                onClick={onOpenClusterMonitor}
+                className="header-btn header-btn-ghost d-flex align-items-center gap-1.5 border-0 text-white px-2.5 py-1"
+                style={{
+                  backgroundColor: clusterState.active === clusterState.total ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.3)',
+                  border: `1px solid ${clusterState.active === clusterState.total ? '#10b981' : '#f59e0b'}`,
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  cursor: 'pointer'
+                }}
+                title={language === 'vi' ? 'Xem Giám Sát Cụm Phân Tán & Kiểm thử sập Node' : 'View Distributed Cluster Monitor & Failover'}
+              >
+                <span
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: clusterState.active === clusterState.total ? '#10b981' : '#f59e0b',
+                    boxShadow: `0 0 6px ${clusterState.active === clusterState.total ? '#10b981' : '#f59e0b'}`
+                  }}
+                />
+                <span className="fw-semibold d-none d-md-inline">
+                  {language === 'vi' ? 'Cụm phân tán:' : 'Cluster:'}
+                </span>
+                <span className="badge bg-light text-dark fw-bold px-1.5 py-0.5" style={{ fontSize: '11px' }}>
+                  {clusterState.active}/{clusterState.total} Node
+                </span>
+                {clusterState.lastNode && (
+                  <span className="text-warning small d-none d-lg-inline" style={{ fontSize: '10px' }}>
+                    ({clusterState.lastNode})
+                  </span>
+                )}
+              </button>
+
               {/* Currency Selector */}
               <Dropdown align="end">
                 <Dropdown.Toggle as="button" className="header-btn header-btn-ghost d-flex align-items-center gap-1 border-0">

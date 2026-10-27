@@ -5,16 +5,73 @@ import bcrypt from 'bcryptjs';
 import db, { run, get, all, initializeDatabase } from './database/db.js';
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || process.argv[2] || 5001;
+const NODE_ID = process.env.NODE_ID || process.argv[3] || `Node-${PORT}`;
 const JWT_SECRET = process.env.JWT_SECRET || 'hotelbooking_secret_key_2026';
 
 app.use(cors());
 app.use(express.json());
 
-// Request logger
+// Biến trạng thái mô phỏng sập Node (hỗ trợ kiểm thử chịu lỗi trực quan)
+let isSimulatedDown = false;
+
+// Middleware gắn Header nhận diện Node phân tán
 app.use((req, res, next) => {
-  console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
+  res.setHeader('X-Served-By', NODE_ID);
+  res.setHeader('X-Node-Port', String(PORT));
+  res.setHeader('X-Node-Pid', String(process.pid));
   next();
+});
+
+// Chặn request nếu node đang trong trạng thái mô phỏng sập (trừ endpoint bật lại)
+app.use((req, res, next) => {
+  if (isSimulatedDown && !req.url.startsWith('/api/node/toggle-fail')) {
+    return res.status(503).json({
+      error: `[503 Service Unavailable] Node ${NODE_ID} (Port ${PORT}) đang ngắt kết nối (Mô phỏng sập Node phân tán)`
+    });
+  }
+  next();
+});
+
+// Request logger kèm định danh Node
+app.use((req, res, next) => {
+  console.log(`[${new Date().toLocaleTimeString()}][${NODE_ID}:${PORT}] ${req.method} ${req.url}`);
+  next();
+});
+
+// Endpoint kiểm tra sức khỏe của Node (Health Check)
+app.get('/api/health', (req, res) => {
+  if (isSimulatedDown) {
+    return res.status(503).json({
+      status: 'DOWN',
+      node: NODE_ID,
+      port: PORT,
+      pid: process.pid,
+      uptime: Math.floor(process.uptime()),
+      message: 'Node đang ngoại tuyến (Simulated Failure)'
+    });
+  }
+  res.json({
+    status: 'UP',
+    node: NODE_ID,
+    port: PORT,
+    pid: process.pid,
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Endpoint mô phỏng sập hoặc khôi phục Node phục vụ bài thi / kiểm tra
+app.post('/api/node/toggle-fail', (req, res) => {
+  isSimulatedDown = !isSimulatedDown;
+  console.log(`⚠️ [DISTRIBUTED TEST] Node ${NODE_ID} (Port ${PORT}) đổi trạng thái: ${isSimulatedDown ? '🔴 SẬP (DOWN)' : '🟢 HOẠT ĐỘNG (UP)'}`);
+  res.json({
+    success: true,
+    node: NODE_ID,
+    port: PORT,
+    isSimulatedDown,
+    status: isSimulatedDown ? 'DOWN' : 'UP'
+  });
 });
 
 // Helper xác thực Token
@@ -877,7 +934,7 @@ app.delete('/api/admin/rooms/:id', async (req, res) => {
 async function startServer() {
   await initializeDatabase();
   app.listen(PORT, () => {
-    console.log(`🚀 REST API Backend đang chạy tại: http://localhost:${PORT}`);
+    console.log(`🚀 [Distributed Node: ${NODE_ID}] Backend Node đang hoạt động tại: http://localhost:${PORT} (PID: ${process.pid})`);
   });
 }
 
