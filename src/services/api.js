@@ -1,4 +1,11 @@
-// Client API Service kết nối REST API Backend (Express + SQLite/MySQL)
+/**
+ * src/services/api.js
+ * Unified Frontend API Client (Bài 1: Client-Server & Phân tầng).
+ * All requests route exclusively through the API Gateway (/api).
+ * No client-side port rotation. Automatic Idempotency-Key attachment.
+ */
+
+import { v4 as uuidv4 } from 'uuid';
 
 const API_BASE = '/api';
 
@@ -22,22 +29,10 @@ export const authStorage = {
   }
 };
 
-// Danh sách các cổng Node phân tán (Distributed Server Ports)
-// Bao gồm 5 cổng backend độc lập (5001, 5002, 5003, 5004, 5005) + cổng Gateway 5000
-const DISTRIBUTED_BACKEND_NODES = [
-  'http://localhost:5001',
-  'http://localhost:5002',
-  'http://localhost:5003',
-  'http://localhost:5004',
-  'http://localhost:5005',
-  'http://localhost:5000'
-];
-
-let roundRobinNodeIndex = 0;
-
 async function request(endpoint, options = {}) {
   const headers = {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
     ...(options.headers || {})
   };
 
@@ -46,46 +41,25 @@ async function request(endpoint, options = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // Tăng chỉ số để luân chuyển đều các cổng theo Round-Robin
-  roundRobinNodeIndex = (roundRobinNodeIndex + 1) % DISTRIBUTED_BACKEND_NODES.length;
+  const url = `${API_BASE}${endpoint}`;
 
-  // Lập danh sách các cổng thử nghiệm: bắt đầu bằng cổng Round-Robin, sau đó là tất cả các cổng còn lại
-  const orderedNodes = [
-    ...DISTRIBUTED_BACKEND_NODES.slice(roundRobinNodeIndex),
-    ...DISTRIBUTED_BACKEND_NODES.slice(0, roundRobinNodeIndex)
-  ];
+  try {
+    const res = await fetch(url, { ...options, headers });
+    const data = await res.json().catch(() => ({}));
 
-  const candidateUrls = [
-    ...orderedNodes.map(baseUrl => `${baseUrl}/api${endpoint}`),
-    `${API_BASE}${endpoint}`
-  ];
-
-  let lastError = null;
-
-  for (const url of candidateUrls) {
-    try {
-      const res = await fetch(url, { ...options, headers });
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        // Nếu cổng trả về 503 (sập/tắt) hoặc 502, lập tức thử sang cổng tiếp theo
-        if (res.status === 503 || res.status === 502) {
-          lastError = new Error(data.error || `HTTP ${res.status}`);
-          continue;
-        }
-        const errorMsg = data.error || data.message || `Lỗi yêu cầu HTTP ${res.status}`;
-        throw new Error(errorMsg);
-      }
-
-      return data;
-    } catch (err) {
-      lastError = err;
-      // Khi 1 cổng bị tắt (TypeError: Failed to fetch / connection refused), tự động chuyển sang cổng kế tiếp
-      console.warn(`[Hệ Thống Phân Tán] ⚠️ Cổng ${url} đã bị tắt/ngắt kết nối! Tự động chuyển request sang cổng tiếp theo...`);
+    if (!res.ok) {
+      const errorMsg = data.error || data.message || `Lỗi yêu cầu HTTP ${res.status}`;
+      const error = new Error(errorMsg);
+      error.status = res.status;
+      error.data = data;
+      throw error;
     }
-  }
 
-  throw lastError || new Error('Không thể kết nối tới bất kỳ cổng nào trong cụm phân tán.');
+    return data;
+  } catch (err) {
+    console.error(`[API Client Error] ${options.method || 'GET'} ${url}:`, err.message);
+    throw err;
+  }
 }
 
 export const api = {
@@ -117,7 +91,7 @@ export const api = {
     }
   },
 
-  // Hotels & Availability API
+  // Hotels Catalog API
   hotels: {
     getAll: async (params = {}) => {
       const query = new URLSearchParams();
@@ -134,97 +108,70 @@ export const api = {
       if (dates.checkOut) query.append('checkOut', dates.checkOut);
       return await request(`/hotels/${id}?${query.toString()}`);
     },
-    checkAvailability: async (id, checkIn, checkOut) => {
-      return await request(`/hotels/${id}/availability?checkIn=${encodeURIComponent(checkIn)}&checkOut=${encodeURIComponent(checkOut)}`);
+    checkAvailability: async (hotelId, checkIn, checkOut, roomTypeId = null, roomsCount = 1) => {
+      const query = new URLSearchParams({
+        checkIn,
+        checkOut,
+        roomsCount: String(roomsCount)
+      });
+      if (roomTypeId) query.append('roomTypeId', roomTypeId);
+      return await request(`/bookings/availability?${query.toString()}`);
     }
   },
 
-  // Bookings API
+  // Bookings API (Anti-overbooking & Idempotency)
   bookings: {
     create: async (bookingData) => {
+      // Attach unique Idempotency-Key per checkout submission to prevent double billing / duplicate bookings
+      const idempotencyKey = uuidv4();
       return await request('/bookings', {
         method: 'POST',
+        headers: {
+          'Idempotency-Key': idempotencyKey
+        },
         body: JSON.stringify(bookingData)
       });
     },
-    getMyBookings: async (email, userId) => {
-      const query = new URLSearchParams();
-      if (userId) query.append('userId', userId);
-      if (email) query.append('email', email);
-      return await request(`/bookings/my?${query.toString()}`);
+    getMyBookings: async () => {
+      return await request('/bookings');
     },
-    getByCode: async (code) => {
-      return await request(`/bookings/code/${encodeURIComponent(code)}`);
+    getById: async (id) => {
+      return await request(`/bookings/${id}`);
     },
-    cancel: async (bookingIdOrCode) => {
-      return await request(`/bookings/${bookingIdOrCode}/cancel`, {
-        method: 'PATCH'
+    cancel: async (bookingId) => {
+      return await request(`/bookings/${bookingId}/cancel`, {
+        method: 'POST'
       });
+    }
+  },
+
+  // In-App Notifications API
+  notifications: {
+    getAll: async () => {
+      return await request('/notifications');
     }
   },
 
   // Admin Dashboard API
   admin: {
     getStats: async () => {
-      return await request('/admin/stats');
+      // Calls Booking Service WorkerPool report endpoint
+      return await request('/bookings/admin/report');
     },
-    getBookings: async (params = {}) => {
-      const query = new URLSearchParams();
-      if (params.status) query.append('status', params.status);
-      if (params.search) query.append('search', params.search);
-      return await request(`/admin/bookings?${query.toString()}`);
+    getBookings: async () => {
+      return await request('/bookings');
     },
-    updateBookingStatus: async (bookingId, status) => {
-      return await request(`/admin/bookings/${bookingId}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status })
-      });
-    },
-    createHotel: async (hotelData) => {
-      return await request('/admin/hotels', {
-        method: 'POST',
-        body: JSON.stringify(hotelData)
-      });
-    },
-    updateHotel: async (id, hotelData) => {
-      return await request(`/admin/hotels/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(hotelData)
-      });
-    },
-    deleteHotel: async (id) => {
-      return await request(`/admin/hotels/${id}`, {
-        method: 'DELETE'
-      });
-    },
-    addRoom: async (hotelId, roomData) => {
-      return await request(`/admin/hotels/${hotelId}/rooms`, {
-        method: 'POST',
-        body: JSON.stringify(roomData)
-      });
-    },
-    updateRoom: async (roomId, roomData) => {
-      return await request(`/admin/rooms/${roomId}`, {
-        method: 'PUT',
-        body: JSON.stringify(roomData)
-      });
-    },
-    deleteRoom: async (roomId) => {
-      return await request(`/admin/rooms/${roomId}`, {
-        method: 'DELETE'
+    cancelBooking: async (bookingId) => {
+      return await request(`/bookings/${bookingId}/cancel`, {
+        method: 'POST'
       });
     }
   },
 
-  // Distributed Cluster Management & Monitoring API
+  // Cluster & Gateway Status Monitoring API
   cluster: {
     getStatus: async () => {
-      return await request('/cluster/status');
-    },
-    toggleNode: async (nodeId) => {
-      return await request(`/cluster/simulate-toggle/${nodeId}`, {
-        method: 'POST'
-      });
+      return await request('/gateway/status');
     }
   }
 };

@@ -1,0 +1,220 @@
+openapi: 3.0.3
+info:
+  title: PhenikaaHotel Distributed Microservices API
+  version: 2.0.0
+  description: >
+    API Specification for PhenikaaHotel Distributed System (Môn Ứng dụng phân tán).
+    Frontend connects exclusively to API Gateway at http://localhost:5000/api.
+servers:
+  - url: http://localhost:5000/api
+    description: API Gateway Entry Point
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user account
+      description: Strictly assigns role 'user'. Never grants 'admin' based on email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string, example: "Nguyễn Văn A" }
+                email: { type: string, format: email, example: "user@example.com" }
+                password: { type: string, minLength: 6, example: "password123" }
+                phone: { type: string, example: "0901234567" }
+      responses:
+        '201':
+          description: User created successfully
+        '409':
+          description: Email already in use
+
+  /auth/login:
+    post:
+      summary: User authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: Login successful with JWT token
+        '401':
+          description: Invalid email or password
+
+  /auth/me:
+    get:
+      summary: Get current authenticated user profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile returned
+        '401':
+          description: Unauthorized
+
+  /hotels:
+    get:
+      summary: Search and filter hotels
+      parameters:
+        - name: city
+          in: query
+          schema: { type: string }
+        - name: query
+          in: query
+          schema: { type: string }
+        - name: minPrice
+          in: query
+          schema: { type: number }
+        - name: maxPrice
+          in: query
+          schema: { type: number }
+        - name: stars
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 5 }
+      responses:
+        '200':
+          description: List of matching hotels
+
+  /hotels/{id}:
+    get:
+      summary: Get hotel details including rooms and amenities
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Hotel details
+        '404':
+          description: Hotel not found
+
+  /bookings:
+    post:
+      summary: Create booking with atomic inventory reservation and idempotency
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Unique client key (UUID) to prevent duplicate bookings
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [hotelId, roomTypeId, checkIn, checkOut]
+              properties:
+                hotelId: { type: string }
+                roomTypeId: { type: string }
+                checkIn: { type: string, format: date, example: "2026-11-01" }
+                checkOut: { type: string, format: date, example: "2026-11-03" }
+                roomsCount: { type: integer, default: 1 }
+                guestsCount: { type: integer, default: 2 }
+                customerName: { type: string }
+                customerEmail: { type: string }
+                customerPhone: { type: string }
+                specialRequests: { type: string }
+      responses:
+        '201':
+          description: Booking confirmed and atomic daily inventory decremented
+        '409':
+          description: Room unavailable for selected dates
+        '422':
+          description: Idempotency-Key conflict (payload altered)
+
+    get:
+      summary: Get bookings (User receives own bookings; Admin receives all bookings)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of bookings
+
+  /bookings/{id}/cancel:
+    post:
+      summary: Cancel a booking and atomically restore daily room inventory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Booking cancelled and inventory restored idempotently
+        '403':
+          description: Forbidden to cancel other user's booking
+        '404':
+          description: Booking not found
+
+  /bookings/availability:
+    get:
+      summary: Check room availability for date range [checkIn, checkOut)
+      parameters:
+        - name: roomTypeId
+          in: query
+          required: true
+          schema: { type: string }
+        - name: checkIn
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: checkOut
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: roomsCount
+          in: query
+          schema: { type: integer, default: 1 }
+      responses:
+        '200':
+          description: Availability status and remaining rooms
+
+  /bookings/admin/report:
+    get:
+      summary: CPU-intensive analytical report computed by Bounded Worker Pool (Bài 2)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Aggregated occupancy, room nights, and estimated values
+        '429':
+          description: Worker Pool saturated (Backpressure)
+
+  /notifications:
+    get:
+      summary: Get in-app notifications consumed from RabbitMQ
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: In-app notification list
+
+  /gateway/status:
+    get:
+      summary: Gateway status and health of all microservices & booking replicas
+      responses:
+        '200':
+          description: Cluster routing and health status
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

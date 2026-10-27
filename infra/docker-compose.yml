@@ -1,0 +1,270 @@
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # CockroachDB 3-Node Distributed Cluster (Bài 1 & Yêu cầu DB phân tán)
+  # Raft consensus, distinct volumes, cluster initialization, and node failover
+  # ---------------------------------------------------------------------------
+  roach1:
+    image: cockroachdb/cockroach:v23.2.9
+    container_name: roach1
+    hostname: roach1
+    command: start --insecure --store=type=mem,size=0.25 --store=path=/cockroach/cockroach-data --listen-addr=0.0.0.0:26257 --http-addr=0.0.0.0:8080 --join=roach1:26257,roach2:26257,roach3:26257
+    volumes:
+      - roach1-data:/cockroach/cockroach-data
+    networks:
+      - hotel-network
+    ports:
+      - "26257:26257"
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health?ready=1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  roach2:
+    image: cockroachdb/cockroach:v23.2.9
+    container_name: roach2
+    hostname: roach2
+    command: start --insecure --store=type=mem,size=0.25 --store=path=/cockroach/cockroach-data --listen-addr=0.0.0.0:26257 --http-addr=0.0.0.0:8080 --join=roach1:26257,roach2:26257,roach3:26257
+    volumes:
+      - roach2-data:/cockroach/cockroach-data
+    networks:
+      - hotel-network
+    ports:
+      - "26258:26257"
+      - "8082:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health?ready=1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  roach3:
+    image: cockroachdb/cockroach:v23.2.9
+    container_name: roach3
+    hostname: roach3
+    command: start --insecure --store=type=mem,size=0.25 --store=path=/cockroach/cockroach-data --listen-addr=0.0.0.0:26257 --http-addr=0.0.0.0:8080 --join=roach1:26257,roach2:26257,roach3:26257
+    volumes:
+      - roach3-data:/cockroach/cockroach-data
+    networks:
+      - hotel-network
+    ports:
+      - "26259:26257"
+      - "8083:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health?ready=1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  roach-init:
+    image: cockroachdb/cockroach:v23.2.9
+    container_name: roach-init
+    depends_on:
+      - roach1
+      - roach2
+      - roach3
+    networks:
+      - hotel-network
+    volumes:
+      - ./cockroachdb/init.sql:/init.sql
+      - ./cockroachdb/seed_from_sqlite.sql:/seed.sql
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Initializing CockroachDB cluster...' &&
+      /cockroach/cockroach init --insecure --host=roach1:26257 || true &&
+      sleep 3 &&
+      echo 'Executing schema initialization...' &&
+      /cockroach/cockroach sql --insecure --host=roach1:26257 --file=/init.sql &&
+      echo 'Executing seed data import...' &&
+      /cockroach/cockroach sql --insecure --host=roach1:26257 --file=/seed.sql &&
+      echo 'CockroachDB cluster initialization complete!'
+      "
+
+  # CockroachDB HAProxy Endpoint for seamless failover
+  roach-lb:
+    image: haproxy:2.8-alpine
+    container_name: roach-lb
+    depends_on:
+      - roach1
+      - roach2
+      - roach3
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    ports:
+      - "26250:26257"
+    networks:
+      - hotel-network
+
+  # ---------------------------------------------------------------------------
+  # RabbitMQ Message Broker (Bài 3 - Trao đổi thông tin)
+  # Durable queues, persistent messages, publisher confirms & manual ACKs
+  # ---------------------------------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: hotel_rabbit
+      RABBITMQ_DEFAULT_PASS: rabbit_secure_pass_2026
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - hotel-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Microservices
+  # ---------------------------------------------------------------------------
+  auth-service:
+    build:
+      context: ..
+      dockerfile: services/auth/Dockerfile
+    container_name: auth-service
+    environment:
+      PORT: 5001
+      NODE_ENV: production
+      DATABASE_URL: postgresql://auth_user:auth_secure_pass_2026@roach-lb:26257/auth_db?sslmode=disable
+      JWT_SECRET: super_secret_jwt_key_phenikaa_hotel_2026
+    depends_on:
+      roach-init:
+        condition: service_completed_successfully
+    ports:
+      - "5001:5001"
+    networks:
+      - hotel-network
+
+  hotel-service:
+    build:
+      context: ..
+      dockerfile: services/hotel/Dockerfile
+    container_name: hotel-service
+    environment:
+      PORT: 5002
+      NODE_ENV: production
+      DATABASE_URL: postgresql://hotel_user:hotel_secure_pass_2026@roach-lb:26257/hotel_db?sslmode=disable
+    depends_on:
+      roach-init:
+        condition: service_completed_successfully
+    ports:
+      - "5002:5002"
+    networks:
+      - hotel-network
+
+  # Booking Service Replica 1
+  booking-service-1:
+    build:
+      context: ..
+      dockerfile: services/booking/Dockerfile
+    container_name: booking-service-1
+    environment:
+      PORT: 5003
+      SERVICE_INSTANCE_ID: booking-replica-1
+      NODE_ENV: production
+      DATABASE_URL: postgresql://booking_user:booking_secure_pass_2026@roach-lb:26257/booking_db?sslmode=disable
+      HOTEL_RPC_URL: http://hotel-service:5002/rpc
+      RABBITMQ_URL: amqp://hotel_rabbit:rabbit_secure_pass_2026@rabbitmq:5672
+    depends_on:
+      roach-init:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "5003:5003"
+    networks:
+      - hotel-network
+
+  # Booking Service Replica 2 (Cross-process concurrency & anti-overbooking demo)
+  booking-service-2:
+    build:
+      context: ..
+      dockerfile: services/booking/Dockerfile
+    container_name: booking-service-2
+    environment:
+      PORT: 5004
+      SERVICE_INSTANCE_ID: booking-replica-2
+      NODE_ENV: production
+      DATABASE_URL: postgresql://booking_user:booking_secure_pass_2026@roach-lb:26257/booking_db?sslmode=disable
+      HOTEL_RPC_URL: http://hotel-service:5002/rpc
+      RABBITMQ_URL: amqp://hotel_rabbit:rabbit_secure_pass_2026@rabbitmq:5672
+    depends_on:
+      roach-init:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "5004:5004"
+    networks:
+      - hotel-network
+
+  notification-service:
+    build:
+      context: ..
+      dockerfile: services/notification/Dockerfile
+    container_name: notification-service
+    environment:
+      PORT: 5005
+      NODE_ENV: production
+      DATABASE_URL: postgresql://notification_user:notif_secure_pass_2026@roach-lb:26257/notification_db?sslmode=disable
+      RABBITMQ_URL: amqp://hotel_rabbit:rabbit_secure_pass_2026@rabbitmq:5672
+    depends_on:
+      roach-init:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "5005:5005"
+    networks:
+      - hotel-network
+
+  api-gateway:
+    build:
+      context: ..
+      dockerfile: gateway/Dockerfile
+    container_name: api-gateway
+    environment:
+      PORT: 5000
+      AUTH_SERVICE_URL: http://auth-service:5001
+      HOTEL_SERVICE_URL: http://hotel-service:5002
+      BOOKING_REPLICAS: http://booking-service-1:5003,http://booking-service-2:5004
+      NOTIFICATION_SERVICE_URL: http://notification-service:5005
+    depends_on:
+      - auth-service
+      - hotel-service
+      - booking-service-1
+      - booking-service-2
+      - notification-service
+    ports:
+      - "5000:5000"
+    networks:
+      - hotel-network
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: Dockerfile.frontend
+    container_name: hotel-frontend
+    environment:
+      VITE_API_BASE_URL: http://localhost:5000/api
+    depends_on:
+      - api-gateway
+    ports:
+      - "3000:80"
+    networks:
+      - hotel-network
+
+networks:
+  hotel-network:
+    driver: bridge
+
+volumes:
+  roach1-data:
+  roach2-data:
+  roach3-data:
