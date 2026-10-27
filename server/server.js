@@ -128,7 +128,8 @@ app.post('/api/auth/register', async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const displayName = name ? name.trim() : email.split('@')[0];
-    const role = email.toLowerCase().includes('admin') ? 'admin' : 'user';
+    // Ràng buộc bảo mật: Mọi tài khoản đăng ký mới luôn luôn có vai trò 'user', tuyệt đối không cấp admin
+    const role = 'user';
 
     const result = await run(
       `INSERT INTO users (name, email, password_hash, role, phone) VALUES (?, ?, ?, ?, ?)`,
