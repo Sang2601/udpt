@@ -90,7 +90,18 @@ export default function HotelCard({
         {/* Left Column: Image */}
         <Col md={4} lg={3}>
           <div className="hotel-img-container h-100 position-relative">
-            <img src={hotel.images?.[0] || ''} alt={hotel.name} className="hotel-img" />
+            <img
+              src={
+                (Array.isArray(hotel.images) && hotel.images.length > 0)
+                  ? hotel.images[0]
+                  : (hotel.image_url || (hotel.images_json ? (typeof hotel.images_json === 'string' ? JSON.parse(hotel.images_json)[0] : hotel.images_json[0]) : '') || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80')
+              }
+              alt={hotel.name}
+              className="hotel-img"
+              onError={(e) => {
+                e.target.src = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80';
+              }}
+            />
             <button
               className={`btn-favorite ${isFavorite ? 'active' : ''}`}
               onClick={(e) => {

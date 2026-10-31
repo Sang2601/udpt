@@ -220,7 +220,13 @@ export default function App() {
             setAuthModal({ show: true, mode: 'login' });
           }
         }}
-        onOpenDistributedModal={() => setShowDistributedModal(true)}
+        onOpenDistributedModal={() => {
+          if (user?.role === 'admin') {
+            setShowDistributedModal(true);
+          } else {
+            setAuthModal({ show: true, mode: 'login' });
+          }
+        }}
       />
 
       {/* Main Content */}
@@ -387,11 +393,13 @@ export default function App() {
         />
       )}
 
-      {/* Distributed System Monitor Modal */}
-      <DistributedSystemModal
-        show={showDistributedModal}
-        onHide={() => setShowDistributedModal(false)}
-      />
+      {/* Distributed System Monitor Modal - CHỈ DÀNH CHO ADMIN */}
+      {user?.role === 'admin' && (
+        <DistributedSystemModal
+          show={showDistributedModal}
+          onHide={() => setShowDistributedModal(false)}
+        />
+      )}
 
       {/* Universal Booking Toast Notification */}
       <ToastContainer position="top-end" className="p-3 position-fixed" style={{ zIndex: 9999 }}>

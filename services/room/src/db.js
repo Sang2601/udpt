@@ -78,6 +78,77 @@ export class RoomDatabase {
     return dates;
   }
 
+  _normalizeHotel(hotel) {
+    if (!hotel) return null;
+    let images = [];
+    if (hotel.images_json) {
+      try {
+        images = typeof hotel.images_json === 'string' ? JSON.parse(hotel.images_json) : hotel.images_json;
+      } catch (e) {
+        images = [];
+      }
+    }
+    if (!Array.isArray(images) || !images.length) {
+      if (hotel.image_url) images = [hotel.image_url];
+      else if (hotel.images && Array.isArray(hotel.images)) images = hotel.images;
+      else images = [
+        'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1000&q=80',
+        'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80',
+        'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1000&q=80'
+      ];
+    }
+
+    const curatedFallbacks = [
+      'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80',
+      'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1000&q=80',
+      'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=1000&q=80',
+      'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1000&q=80'
+    ];
+    if (images.length < 3) {
+      for (const fallback of curatedFallbacks) {
+        if (!images.includes(fallback) && images.length < 4) {
+          images.push(fallback);
+        }
+      }
+    }
+
+    let amenities = [];
+    if (hotel.amenities_json) {
+      try {
+        amenities = JSON.parse(hotel.amenities_json);
+      } catch (e) {
+        amenities = [];
+      }
+    } else if (hotel.amenities) {
+      amenities = Array.isArray(hotel.amenities) ? hotel.amenities : [hotel.amenities];
+    } else {
+      amenities = ['Hồ bơi', 'WiFi miễn phí', 'Bữa sáng thượng hạng', 'Spa cao cấp', 'Phòng gym'];
+    }
+
+    const priceVND = hotel.price_vnd || hotel.price_per_night || hotel.priceVND || 1500000;
+    const reviewScore = hotel.review_score || hotel.rating || hotel.reviewScore || 9.2;
+
+    return {
+      ...hotel,
+      images,
+      image_url: images[0] || hotel.image_url || '',
+      amenities,
+      starRating: hotel.star_rating || hotel.starRating || 5,
+      star_rating: hotel.star_rating || hotel.starRating || 5,
+      reviewScore,
+      review_score: reviewScore,
+      rating: reviewScore,
+      reviewScoreWord: hotel.review_score_word || hotel.reviewScoreWord || 'Xuất sắc',
+      reviewCount: hotel.review_count || hotel.reviewCount || 120,
+      priceVND,
+      price_vnd: priceVND,
+      price_per_night: priceVND,
+      originalPriceVND: hotel.original_price_vnd || hotel.originalPriceVND || Math.round(priceVND * 1.25),
+      roomType: hotel.room_type || hotel.roomType || 'Phòng Tiêu Chuẩn',
+      bedType: hotel.bed_type || hotel.bedType || '1 giường đôi lớn'
+    };
+  }
+
   async getAllHotels(filters = {}) {
     const { city, minPrice, maxPrice, stars } = filters;
     if (this.mode === 'mysql') {
@@ -102,7 +173,7 @@ export class RoomDatabase {
       query += ' ORDER BY rating DESC';
 
       const [rows] = await this.pool.query(query, params);
-      return rows;
+      return (rows || []).map(r => this._normalizeHotel(r));
     } else {
       return new Promise((resolve, reject) => {
         let query = 'SELECT * FROM hotels WHERE 1=1';
@@ -120,13 +191,7 @@ export class RoomDatabase {
         this.sqliteDb.all(query, params, (err, rows) => {
           if (err) reject(err);
           else {
-            // Normalize field names to match frontend expectations
-            const mapped = (rows || []).map(r => ({
-              ...r,
-              price_per_night: r.price_vnd || r.price_per_night,
-              rating: r.review_score || r.rating,
-              image_url: r.images_json ? JSON.parse(r.images_json)[0] : r.image_url
-            }));
+            const mapped = (rows || []).map(r => this._normalizeHotel(r));
             resolve(mapped);
           }
         });
@@ -135,11 +200,26 @@ export class RoomDatabase {
   }
 
   async getHotelById(id) {
+    const roomPhotos = [
+      'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=800&q=80'
+    ];
     if (this.mode === 'mysql') {
       const [hotels] = await this.pool.query('SELECT * FROM hotels WHERE id = ? LIMIT 1', [id]);
       if (!hotels.length) return null;
       const [rooms] = await this.pool.query('SELECT * FROM room_types WHERE hotel_id = ?', [id]);
-      return { ...hotels[0], rooms };
+      const mappedRooms = (rooms || []).map((r, idx) => ({
+        ...r,
+        price: r.price,
+        priceVND: r.price,
+        total_rooms: r.total_rooms,
+        totalUnits: r.total_rooms,
+        image_url: r.image_url || roomPhotos[idx % roomPhotos.length]
+      }));
+      const normalized = this._normalizeHotel(hotels[0]);
+      return { ...normalized, rooms: mappedRooms };
     } else {
       return new Promise((resolve, reject) => {
         this.sqliteDb.get('SELECT * FROM hotels WHERE id = ? LIMIT 1', [id], (err, hotel) => {
@@ -147,15 +227,17 @@ export class RoomDatabase {
           if (!hotel) return resolve(null);
           this.sqliteDb.all('SELECT * FROM rooms WHERE hotel_id = ?', [id], (err2, rooms) => {
             if (err2) return reject(err2);
-            const mappedRooms = (rooms || []).map(r => ({
+            const mappedRooms = (rooms || []).map((r, idx) => ({
               ...r,
               price: r.price_vnd || r.price,
-              total_rooms: r.total_units || r.total_rooms
+              priceVND: r.price_vnd || r.price,
+              total_rooms: r.total_units || r.total_rooms,
+              totalUnits: r.total_units || r.total_rooms,
+              image_url: r.image_url || roomPhotos[idx % roomPhotos.length]
             }));
+            const normalized = this._normalizeHotel(hotel);
             resolve({
-              ...hotel,
-              price_per_night: hotel.price_vnd,
-              rating: hotel.review_score,
+              ...normalized,
               rooms: mappedRooms
             });
           });
@@ -340,4 +422,3 @@ export class RoomDatabase {
     }
   }
 }
-

@@ -122,6 +122,29 @@ export default function HotelDetailModal({
   if (!hotel) return null;
 
   const currentHotel = hotelDetails || hotel;
+  const getGalleryImages = () => {
+    let list = [];
+    if (Array.isArray(currentHotel?.images) && currentHotel.images.length > 0) {
+      list = currentHotel.images;
+    } else if (currentHotel?.images_json) {
+      try {
+        list = typeof currentHotel.images_json === 'string' ? JSON.parse(currentHotel.images_json) : currentHotel.images_json;
+      } catch (e) {
+        list = [];
+      }
+    }
+    if (!list || !list.length) {
+      if (currentHotel?.image_url) list = [currentHotel.image_url];
+      else list = [
+        'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1000&q=80',
+        'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1000&q=80',
+        'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1000&q=80',
+        'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=1000&q=80'
+      ];
+    }
+    return list;
+  };
+  const galleryImages = getGalleryImages();
   const roomsList = currentHotel.rooms || [];
   const selectedRoom = roomsList.find(r => r.id === selectedRoomId) || roomsList[0];
 
@@ -239,14 +262,15 @@ export default function HotelDetailModal({
         <div className="mb-4">
           <div style={{ height: '400px', borderRadius: '8px', overflow: 'hidden', position: 'relative' }}>
             <img
-              src={currentHotel.images?.[activeImgIdx] || currentHotel.images?.[0]}
+              src={galleryImages[activeImgIdx] || galleryImages[0]}
+              onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80'; }}
               alt={currentHotel.name}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           </div>
-          {currentHotel.images?.length > 1 && (
+          {galleryImages.length > 1 && (
             <Row className="g-2 mt-2">
-              {currentHotel.images.map((img, idx) => (
+              {galleryImages.map((img, idx) => (
                 <Col xs={3} key={idx}>
                   <img
                     src={img}
@@ -358,10 +382,22 @@ export default function HotelDetailModal({
                       className={isSoldOut ? 'table-secondary opacity-75' : isSelected ? 'table-primary table-opacity-10' : ''}
                     >
                       <td>
-                        <div className="fw-bold text-dark">{rm.name}</div>
-                        <small className="text-muted">
-                          {language === 'vi' ? 'Diện tích:' : 'Size:'} {rm.size || '35 m²'}
-                        </small>
+                        <div className="d-flex align-items-center gap-2">
+                          {rm.image_url && (
+                            <img
+                              src={rm.image_url}
+                              alt={rm.name}
+                              style={{ width: '56px', height: '42px', objectFit: 'cover', borderRadius: '4px', flexShrink: 0 }}
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                          )}
+                          <div>
+                            <div className="fw-bold text-dark">{rm.name}</div>
+                            <small className="text-muted">
+                              {language === 'vi' ? 'Diện tích:' : 'Size:'} {rm.size || '35 m²'}
+                            </small>
+                          </div>
+                        </div>
                       </td>
                       <td>
                         <i className="bi bi-person-fill text-muted me-1"></i>
