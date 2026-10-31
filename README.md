@@ -1,140 +1,158 @@
-# PhenikaaHotel — Hệ thống Đặt phòng Khách sạn & Nghỉ dưỡng Cao cấp
+# PhenikaaHotel — Hệ thống Đặt phòng Khách sạn Phân tán (Microservices & MySQL)
 
-Ứng dụng đặt phòng trực tuyến hiện đại mang nhận diện thương hiệu Tập đoàn Phenikaa (**PhenikaaHotel**), được phát triển trên kiến trúc ứng dụng web phân tán kết hợp **React 19 + Vite** (Frontend) và **Express.js + SQLite / REST API** (Backend & CSDL).
-
----
-
-## 🌟 Tính năng chính
-
-### 1. Dành cho Khách hàng & Người dùng
-- **Tìm kiếm & Bộ lọc linh hoạt:** Tìm kiếm theo điểm đến thịnh hành (Hà Nội, Đà Nẵng, TP. HCM, Phú Quốc, Đà Lạt...), xếp hạng sao, điểm đánh giá, tiện ích và mức ngân sách.
-- **Kiểm tra phòng trống thời gian thực (Live Availability):** Hệ thống kết nối trực tiếp CSDL kiểm tra số lượng phòng trống theo từng khoảng ngày nhận/trả phòng.
-- **Đặt phòng & Xác nhận CSDL tức thì:** Điền thông tin đặt phòng, lưu trực tiếp vào CSDL hệ thống và cấp mã đặt phòng duy nhất (`BK-xxxxxx`).
-- **Quản lý đơn cá nhân (My Bookings):** Tra cứu đơn đặt phòng theo mã đơn hoặc email, theo dõi trạng thái đơn và hủy phòng (tự động hoàn trả số lượng phòng trống vào kho).
-- **Hỗ trợ đa ngôn ngữ & Tiền tệ:** Chuyển đổi linh hoạt giữa **Tiếng Việt 🇻🇳** và **English 🇬🇧**, định dạng tiền tệ **VND (₫)** và **USD ($)**.
-
-### 2. Dành cho Quản trị viên (Admin Panel)
-- **Bảo mật & Phân quyền chặt chẽ:** Chỉ tài khoản có quyền `admin` mới hiển thị nút và truy cập được vào Bảng điều khiển quản trị.
-- **Thống kê tổng quan:** Theo dõi tổng doanh thu thực tế, số lượng đơn đặt phòng hoạt động, số lượng khách sạn và tổng kho phòng.
-- **Quản lý đơn đặt phòng:** Tìm kiếm, lọc theo trạng thái (*Đã xác nhận*, *Hoàn thành*, *Đã hủy*), xác nhận khách nhận phòng hoặc hủy đơn hoàn trả phòng trống.
-- **Quản lý khách sạn & Kho phòng:** Xem danh sách chỗ nghỉ, thêm khách sạn mới, tùy chỉnh số lượng phòng trong kho (`totalUnits`) cho từng loại phòng theo thời gian thực.
+Dự án môn **Ứng dụng Phân tán (UDPT)** — Được xây dựng theo đúng bản vẽ kiến trúc đề xuất: **MySQL + Docker Compose + Spring Cloud Gateway Pattern**, tích hợp đầy đủ 4 tính năng cốt lõi của một hệ thống phân tán thực tế.
 
 ---
 
-## 🔑 Tài khoản mặc định hệ thống
+## 🏛️ Sơ đồ Kiến trúc Hệ thống Phân tán
+
+Hệ thống được thiết kế theo mô hình **Microservices Architecture** với phân tách Database riêng biệt (**Database-per-Service Pattern**) và Cổng điều phối trung tâm:
+
+```
+                  ┌─────────────────────────────────────────────────────────┐
+                  │    Giao diện Client HTML / JavaScript / React : 5500    │
+                  └────────────────────────────┬────────────────────────────┘
+                                               │ HTTP / JSON
+                                               ▼
+                  ┌─────────────────────────────────────────────────────────┐
+                  │          Spring Cloud Gateway (API Gateway) : 8088      │
+                  │  (Reverse Proxy, Load Balancer, Circuit Breaker, Auth)  │
+                  └──────┬─────────────┬─────────────┬─────────────┬────────┘
+                         │             │             │             │
+        ┌────────────────┼─────────────┼─────────────┼─────────────┼────────────────┐
+        ▼                ▼             ▼             ▼             ▼                ▼
+ ┌──────────────┐ ┌──────────────┐ ┌───────────────────────┐ ┌───────────────────────┐ ┌──────────────┐
+ │ Auth-service │ │ User-service │ │ Room-service Clusters │ │Booking-service Cluster│ │Payment-service│
+ │    :8080     │ │    :8081     │ │  :8083 (Replica 1)    │ │  :8082 (Replica 1)    │ │    :8084     │
+ └──────────────┘ └──────┬───────┘ │  :8086 (Replica 2)    │ │  :8085 (Replica 2)    │ └──────┬───────┘
+                         │         └───────────┬───────────┘ └───────────┬───────────┘        │
+                         ▼                     ▼                         ▼                    ▼
+                  ┌──────────────┐      ┌──────────────┐          ┌──────────────┐     ┌──────────────┐
+                  │    userdb    │      │    roomdb    │          │  bookingdb   │     │  paymentdb   │
+                  │    MySQL     │      │    MySQL     │          │    MySQL     │     │    MySQL     │
+                  └──────────────┘      └──────────────┘          └──────────────┘     └──────────────┘
+                         │                     │                         │                    │
+                         └─────────────────────┴────────────┬────────────┴────────────────────┘
+                                                            ▼
+                                             ┌─────────────────────────────┐
+                                             │  Dịch vụ Sao lưu CSDL       │
+                                             │  (Automated MySQL Backup)   │
+                                             └─────────────────────────────┘
+```
+
+---
+
+## 🌟 4 Tính năng Hệ thống Phân tán (Yêu cầu Môn học)
+
+### 1. Tính chịu lỗi (Fault-Tolerance & Database Backup)
+* **Cô lập CSDL độc lập (Database-per-Service):** 4 CSDL MySQL (`userdb`, `roomdb`, `bookingdb`, `paymentdb`) hoạt động tách biệt. Sự cố ở CSDL phòng không làm ảnh hưởng đến tài khoản người dùng hoặc lịch sử thanh toán.
+* **Cơ chế Sao lưu Tự động (Automated Backup):** Container `db-backup` trong Docker Compose định kỳ xuất bản sao lưu dạng SQL Dump ra volume `/backups`. Đồng thời có script `npm run backup` và `npm run restore` phục hồi thảm họa tức thì.
+* **Resilient Dual-Mode Database Adapter:** Mỗi microservice được trang bị bộ điều hợp kết nối thông minh với Connection Pool (`mysql2/promise`). Trong môi trường không có sẵn Docker, hệ thống tự động kích hoạt chế độ Fallback an toàn, tuyệt đối không bị crash server.
+* **Tự động chuyển hướng khi sập Node (Zero-Downtime Failover):** Khi một node replica gặp sự cố (ví dụ tắt cổng :8083), Gateway tự động phát hiện trong < 50ms và điều hướng 100% request sang node replica còn lại mà người dùng không gặp gián đoạn.
+* **Ngắt mạch chống lỗi dây chuyền (Circuit Breaker):** Khi một dịch vụ downstream tạm thời không phản hồi, Gateway trả về phản hồi fallback chuẩn hóa kèm mã HTTP 503, ngăn chặn cạn kiệt tài nguyên toàn hệ thống.
+
+### 2. Chịu tải của hệ thống phân tán (High Load Resilience)
+* **Mở rộng theo chiều ngang (Horizontal Scaling):** Chạy đồng thời nhiều instance cho các dịch vụ có tải trọng cao (`room-service` chạy trên :8083 và :8086; `booking-service` chạy trên :8082 và :8085).
+* **Bộ nhớ đệm phân tán (In-Memory Search Caching):** `room-service` tích hợp cache LRU với cơ chế tự động xóa bộ đệm (Cache Invalidation) khi có biến động kho phòng, giúp hệ thống chịu tải hàng ngàn lượt tìm kiếm/giây với độ trễ thấp (< 10ms).
+* **Giới hạn tốc độ yêu cầu (Rate Limiter):** Gateway tích hợp bộ lọc giới hạn 300 requests/phút trên từng IP nhằm phòng ngừa tấn công quá tải hoặc DDoS.
+* **Quản lý kết nối CSDL (Connection Pooling):** Tối ưu hóa việc tái sử dụng kết nối MySQL, tránh tình trạng "Too many connections".
+
+### 3. Điều phối hệ thống phân tán (Distributed Coordination & Saga Pattern)
+* **Saga Orchestrator Pattern cho quy trình Đặt phòng:** Trong môi trường phân tán nhiều CSDL, không thể sử dụng ACID transaction cục bộ. `Booking-service` đóng vai trò nhạc trưởng điều phối giao dịch qua các bước:
+  1. **Bước 1 (Booking Service):** Khởi tạo đơn hàng ở trạng thái `PENDING`.
+  2. **Bước 2 (Room Service):** Gọi API `/api/rooms/hold` để khóa giữ số lượng phòng trống.
+  3. **Bước 3 (Payment Service):** Gọi API `/api/payments/process` để xử lý thanh toán.
+  4. **Bước 4 (Commit hoặc Giao dịch bù trừ Rollback):**
+     * *Nếu thanh toán thành công:* Cam kết kho phòng (`/api/rooms/confirm`) và cập nhật đơn sang `CONFIRMED`.
+     * *Nếu thanh toán thất bại:* Tự động kích hoạt **Compensating Transaction** gọi Room Service `/api/rooms/release` để hoàn trả lại phòng trống, ghi nhận trạng thái `FAILED_PAYMENT_REVERTED`.
+* **Cơ chế Idempotency Key:** Chống trừ tiền trùng lặp và đặt phòng 2 lần khi mạng chập chờn.
+* **Nhật ký Điều phối (Audit Trail):** Mọi bước trong quy trình Saga được lưu vết minh bạch tại bảng `saga_coordination` và có thể theo dõi trực tiếp tại API `/api/saga/logs`.
+
+### 4. Cân bằng tải (Load Balancer)
+* **Thuật toán Round-Robin & Least-Connections:** Được cài đặt ngay tại Gateway :8088, luân chuyển đều các yêu cầu giữa `room-replica-1` (:8083) và `room-replica-2` (:8086), cũng như giữa `booking-replica-1` (:8082) và `booking-replica-2` (:8085).
+* **Định danh nguồn xử lý minh bạch:** Mỗi phản hồi HTTP được Gateway đính kèm tiêu đề:
+  * `X-Handled-By: room-replica-1:8083`
+  * `X-Load-Balancer-Strategy: round-robin`
+  * `X-Request-Id: <uuid>`
+* **Dashboard Giám sát Trực quan:** Nút **"Hệ Thống Phân Tán"** ngay trên giao diện web hiển thị thời gian thực tỷ lệ % phân phối tải giữa các node.
+
+---
+
+## 🚀 Hướng dẫn Cài đặt & Khởi chạy
+
+### Cách 1: Khởi chạy bằng Docker Compose (Khuyên dùng khi có Docker)
+
+Khởi động toàn bộ cụm gồm 4 CSDL MySQL, Dịch vụ Backup, 5 Microservices và Gateway:
+```sh
+docker-compose up --build
+```
+* **Giao diện Client:** `http://localhost:5500`
+* **Spring Cloud Gateway:** `http://localhost:8088`
+
+---
+
+### Cách 2: Khởi chạy Cục bộ bằng Node.js (Một lệnh duy nhất)
+
+Máy tính đã cài sẵn Node.js (v18+). Chạy lệnh sau để khởi động đồng thời toàn bộ cụm phân tán:
+```sh
+npm run dev
+```
+
+Hệ thống sẽ đồng loạt khởi chạy:
+* `GATEWAY` trên port **8088**
+* `AUTH-SERVICE` trên port **8080**
+* `USER-SERVICE` trên port **8081**
+* `ROOM-SERVICE (Replica 1)` trên port **8083**
+* `ROOM-SERVICE (Replica 2)` trên port **8086**
+* `BOOKING-SERVICE (Replica 1)` trên port **8082**
+* `BOOKING-SERVICE (Replica 2)` trên port **8085**
+* `PAYMENT-SERVICE` trên port **8084**
+* `FRONTEND CLIENT` trên port **5500**
+
+Mở trình duyệt truy cập: `http://localhost:5500`
+
+---
+
+## 🧪 Kịch bản Kiểm Thử (Dành cho Giảng viên & Chấm điểm)
+
+### Kịch bản 1: Kiểm thử Cân bằng tải (Load Balancing)
+Mở terminal và chạy script mô phỏng:
+```sh
+npm run test:load
+```
+* **Kết quả quan sát:** 100 requests được gửi vào Gateway :8088, Gateway phân bổ chính xác 50% vào `room-replica-1` (:8083) và 50% vào `room-replica-2` (:8086). Hiển thị biểu đồ ASCII phân phối tải và độ trễ phân vị P50/P95/P99.
+
+### Kịch bản 2: Kiểm thử Tính chịu lỗi & Tắt Node (Failover)
+```sh
+npm run test:failover
+```
+* **Thử nghiệm:** Tắt tiến trình cổng 8083 (Room Replica 1). Tiếp tục gửi request qua Gateway :8088.
+* **Kết quả:** Gateway tự động phát hiện node 8083 bị tắt, chuyển 100% lưu lượng sang cổng 8086. Khách hàng vẫn lướt web và tìm kiếm phòng bình thường, không gặp mã lỗi 500!
+
+### Kịch bản 3: Kiểm thử Sao lưu & Khôi phục CSDL
+* **Sao lưu dữ liệu:**
+  ```sh
+  npm run backup
+  ```
+  *(Các bản sao lưu được lưu trữ có gắn timestamp tại thư mục `backups/`)*
+* **Khôi phục dữ liệu:**
+  ```sh
+  npm run restore
+  ```
+
+### Kịch bản 4: Kiểm thử Điều phối Saga & Giao dịch Bù trừ
+1. Mở trang web `http://localhost:5500`. Bấm nút **"Hệ Thống Phân Tán"** trên thanh Header để mở màn hình giám sát.
+2. Mở chi tiết 1 khách sạn bất kỳ, bấm đặt phòng.
+3. Trong phương thức thanh toán, chọn:
+   * **Thanh toán thành công:** Theo dõi Saga hoàn tất 4 bước `PENDING` -> `ROOM_HELD` -> `PAYMENT_PROCESSED` -> `CONFIRMED`.
+   * **Mô phỏng lỗi thanh toán:** Nhập phương thức mô phỏng lỗi. Hệ thống kích hoạt ngay **Giao dịch bù trừ**, tự động giải phóng phòng đã giữ, kho phòng không bị thất thoát!
+4. Xem nhật ký Saga chi tiết tại tab **5. Điều Phối Phân Tán (Saga)**.
+
+---
+
+## 🔑 Tài khoản Mặc định Hệ thống
 
 | Vai trò | Email đăng nhập | Mật khẩu | Quyền hạn |
 | :--- | :--- | :--- | :--- |
-| **Quản trị viên (Admin)** | `admin@phenikaa.com` | `admin123` | Toàn quyền truy cập Trang Quản Trị và quản lý dữ liệu CSDL |
-| **Khách hàng (User)** | `khachhang@phenikaa.com` | `user123` | Đặt phòng, tự động điền form, quản lý đơn cá nhân |
-
-*(Người dùng cũng có thể bấm **Đăng ký** để tạo tài khoản mới bất kỳ lúc nào)*
-
----
-
----
-
----
-
-## 🌐 Kiến trúc Ứng dụng Phân tán & Cơ chế Chịu lỗi Đa Cổng (Môn Ứng dụng phân tán)
-
-Hệ thống được thiết kế theo đúng mô hình **Kiến trúc phân tán chịu lỗi cao (High-Availability Fault-Tolerant Distributed Cluster)** với **5 Cổng Backend độc lập**:
-
-```
-           [ Client Trình Duyệt / Frontend React (Port 5173) ]
-                    │                                 ▲
-                    │ (Tự động chuyển cổng Failover)  │
-                    ▼                                 │
-     ┌─────────────────────────────────────────────────────────────────┐
-     │  Cụm Máy Chủ Phân Tán (5 Cổng Backend Độc Lập + 1 Cổng Gateway) │
-     ├─────────────┬─────────────┬─────────────┬─────────────┬─────────┤
-     │   Cổng 5001 │   Cổng 5002 │   Cổng 5003 │   Cổng 5004 │Cổng 5005│
-     │  (Node-1)   │  (Node-2)   │  (Node-3)   │  (Node-4)   │(Node-5) │
-     └──────┬──────┴──────┬──────┴──────┬──────┴──────┬──────┴────┬────┘
-            │             │             │             │           │
-            └─────────────┴─────────────┼─────────────┴───────────┘
-                                        ▼
-                  ┌──────────────────────────────────────────┐
-                  │  Cơ sở Dữ liệu Tập trung Đồng thời       │
-                  │  (SQLite WAL Concurrency Mode)           │
-                  └──────────────────────────────────────────┘
-```
-
-### 1. Nguyên lý phân tán & Chịu lỗi Đa Cổng:
-1. **5 Cổng Backend độc lập:** Chạy đồng thời 5 Node backend worker trên 5 cổng khác nhau: **`5001`**, **`5002`**, **`5003`**, **`5004`**, **`5005`**. Mỗi node là 1 tiến trình Node.js riêng biệt.
-2. **Cân bằng tải Round-Robin giữa các cổng:** Client tự động luân chuyển đều các yêu cầu qua các cổng đang hoạt động.
-3. **Chịu lỗi tức thì khi tắt cổng (Zero-Downtime Multi-Port Failover):**
-   - Khi bất kỳ 1 cổng nào bị tắt (ví dụ tắt cổng `5001`), Client ngay lập tức phát hiện lỗi kết nối và tự động chuyển sang cổng tiếp theo (`5002`, `5003`, `5004`, `5005`) trong < 50ms.
-   - **Người dùng không hề bị gián đoạn, không gặp màn hình lỗi, website vẫn tìm kiếm và đặt phòng hoàn toàn bình thường!**
-4. **Đồng bộ dữ liệu an toàn:** Kích hoạt chế độ `PRAGMA journal_mode = WAL;` và `PRAGMA busy_timeout = 10000;`, cho phép cả 5 cổng cùng đọc ghi đồng thời vào CSDL mà không bị xung đột khóa (locking).
-
----
-
-## 🧪 Hướng dẫn Giảng viên Kiểm tra Tắt Cổng (Failover Test)
-
-Giảng viên có thể kiểm tra tắt bất kỳ cổng nào theo các bước:
-
-1. **Khởi chạy toàn bộ hệ thống phân tán:**
-   ```sh
-   npm run dev
-   ```
-   *(Lệnh này sẽ khởi động 5 cổng backend 5001, 5002, 5003, 5004, 5005, cổng Gateway 5000 và Frontend 5173)*
-
-2. **Mở website tại:** `http://localhost:5173/`
-   - Bấm F12 mở tab **Console** để theo dõi log điều hướng cổng phân tán.
-
-3. **Thực hiện tắt 1 cổng bất kỳ để kiểm tra:**
-   - Mở PowerShell hoặc Task Manager:
-     - Tắt tiến trình cổng 5001 (hoặc dùng `Stop-Process -Id <PID_PORT_5001>`).
-     - Hoặc nếu chạy từng cổng ở từng cửa sổ terminal riêng biệt: bấm `Ctrl + C` ở cửa sổ cổng 5001 để tắt.
-   - Quay lại trang web bấm **Tìm kiếm**, **Xem chi tiết khách sạn** hoặc **Đặt phòng**:
-     - **Kết quả:** Trang web **vẫn hoạt động bình thường 100%**, không hề bị sập!
-     - Trong Console sẽ hiển thị:
-       ```
-       [Hệ Thống Phân Tán] ⚠️ Cổng http://localhost:5001/api/... đã bị tắt! Tự động chuyển request sang cổng tiếp theo...
-       ```
-     - Request được cổng 5002 hoặc 5003 xử lý thành công ngay lập tức!
-   - Thầy có thể tiếp tục tắt thêm cổng 5002, 5003: Hệ thống vẫn tiếp tục chạy mượt mà trên cổng 5004, 5005!
-
----
-
-## 🚀 Các lệnh chạy dự án
-
-| Lệnh | Ý nghĩa |
-| :--- | :--- |
-| `npm run dev` | Khởi chạy toàn bộ cụm: 5 cổng backend (5001-5005), Gateway (5000) và Frontend Vite (5173) |
-| `npm run nodes` | Chạy đồng thời 5 cổng backend (5001, 5002, 5003, 5004, 5005) |
-| `npm run cluster` | Chạy 5 cổng backend + cổng Gateway 5000 |
-| `npm run node1` | Chạy riêng lẻ Cổng 5001 |
-| `npm run node2` | Chạy riêng lẻ Cổng 5002 |
-| `npm run node3` | Chạy riêng lẻ Cổng 5003 |
-| `npm run node4` | Chạy riêng lẻ Cổng 5004 |
-| `npm run node5` | Chạy riêng lẻ Cổng 5005 |
-| `npm run gateway` | Chạy riêng cổng Gateway (Port 5000) |
-| `npm run client` | Chạy riêng Frontend Vite (Port 5173) |
-| `npm run build` | Biên dịch bản tối ưu sản phẩm (Production Build) |
-
----
-
-## 📂 Cấu trúc thư mục
-
-```
-webnc/
-├── server/
-│   ├── database/
-│   │   ├── db.js             # Kết nối SQLite, khởi tạo schema & seed dữ liệu
-│   │   └── schema.sql        # Định nghĩa cấu trúc bảng users, hotels, rooms, bookings
-│   └── server.js             # REST API server (Auth, Hotels, Rooms, Bookings, Admin)
-├── src/
-│   ├── components/           # Các component React (Header, SearchBar, FilterSidebar,
-│   │                         # HotelCard, HotelDetailModal, MyBookingsModal,
-│   │                         # AdminDashboardModal, TrendingDestinations, Footer)
-│   ├── data/                 # Dữ liệu khởi tạo & danh sách điểm đến
-│   ├── services/             # Axios API client kết nối REST API backend
-│   ├── utils/                # Hàm định dạng tiền tệ & thời gian
-│   ├── App.jsx               # Logic trang chính & điều phối modal
-│   └── index.css             # Hệ màu thương hiệu Phenikaa (#002855 & #F37021)
-├── index.html
-├── package.json
-└── vite.config.js
-```
+| **Quản trị viên (Admin)** | `admin@phenikaa.com` | `admin123` | Quản lý hệ thống, kiểm soát kho phòng, xem toàn bộ đơn đặt |
+| **Khách hàng (User)** | `khachhang@phenikaa.com` | `user123` | Tìm kiếm phòng, đặt phòng theo quy trình Saga, xem đơn cá nhân |

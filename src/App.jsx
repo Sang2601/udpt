@@ -9,6 +9,7 @@ import HotelDetailModal from './components/HotelDetailModal';
 import AuthModal from './components/AuthModal';
 import MyBookingsModal from './components/MyBookingsModal';
 import AdminDashboardModal from './components/AdminDashboardModal';
+import DistributedSystemModal from './components/DistributedSystemModal';
 import Footer from './components/Footer';
 
 import { initialHotels } from './data/hotelsData';
@@ -63,6 +64,7 @@ export default function App() {
   const [authModal, setAuthModal] = useState({ show: false, mode: 'login' });
   const [showMyBookings, setShowMyBookings] = useState(false);
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
+  const [showDistributedModal, setShowDistributedModal] = useState(false);
   const [bookingToast, setBookingToast] = useState({ show: false, title: '', message: '', code: '' });
 
   const resultsRef = useRef(null);
@@ -78,51 +80,43 @@ export default function App() {
         minScore: filters.minScore > 0 ? filters.minScore : undefined,
         maxPrice: filters.maxPrice,
         freeCancellation: filters.freeCancellation ? 'true' : undefined,
-        sortBy,
         checkIn: checkInDate,
         checkOut: checkOutDate
       });
 
-      if (res.data && Array.isArray(res.data)) {
-        // Lọc thêm tiện ích ở phía client nếu cần
-        let list = res.data;
-        if (filters.amenities.length > 0) {
-          list = list.filter(hotel =>
-            filters.amenities.every(a =>
-              hotel.amenities?.some(ha => ha.toLowerCase().includes(a.toLowerCase()))
-            )
-          );
-        }
-        setHotels(list);
+      if (Array.isArray(res)) {
+        setHotels(res);
+      } else if (res && Array.isArray(res.hotels)) {
+        setHotels(res.hotels);
+      } else {
+        setHotels(initialHotels);
       }
     } catch (err) {
-      console.warn('Không thể kết nối REST API backend, dùng dữ liệu khởi tạo:', err.message);
+      console.warn('API Gateway chưa sẵn sàng hoặc gặp lỗi, sử dụng dữ liệu tĩnh fallback:', err);
       setHotels(initialHotels);
     } finally {
       setLoadingHotels(false);
     }
-  }, [activeSearchCity, filters, sortBy, checkInDate, checkOutDate]);
+  }, [activeSearchCity, filters, checkInDate, checkOutDate]);
 
   useEffect(() => {
     fetchHotelsFromApi();
   }, [fetchHotelsFromApi]);
 
-  // Handle Favorite Toggle
-  const handleToggleFavorite = (hotelId) => {
-    setFavorites(prev =>
-      prev.includes(hotelId) ? prev.filter(id => id !== hotelId) : [...prev, hotelId]
-    );
-  };
+  // Handle Search Submission
+  const handleSearch = ({ destination: dest, checkIn, checkOut, guests: g, isWork }) => {
+    setDestination(dest);
+    setActiveSearchCity(dest);
+    setCheckInDate(checkIn);
+    setCheckOutDate(checkOut);
+    setGuests(g);
+    setIsWorkTravel(isWork);
 
-  // Trigger Search for Stays
-  const handleSearch = () => {
-    setActiveSearchCity(destination.trim());
     if (resultsRef.current) {
       resultsRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
-  // Select Destination from cards
   const handleSelectDestination = (cityName) => {
     setDestination(cityName);
     setActiveSearchCity(cityName);
@@ -131,48 +125,70 @@ export default function App() {
     }
   };
 
-  // Reset Filters
-  const handleResetFilters = () => {
-    setFilters({
-      stars: [],
-      minScore: 0,
-      maxPrice: 15000000,
-      amenities: [],
-      freeCancellation: false,
-      propertyType: 'all'
-    });
-    setDestination('');
-    setActiveSearchCity('');
+  const handleToggleFavorite = (hotelId) => {
+    setFavorites(prev =>
+      prev.includes(hotelId) ? prev.filter(id => id !== hotelId) : [...prev, hotelId]
+    );
   };
 
-  // Open Hotel Detail Modal
-  const handleOpenHotel = (hotel) => {
+  const handleSelectHotel = (hotel) => {
     setSelectedHotel(hotel);
     setShowHotelModal(true);
   };
 
-  // Xử lý sau khi lưu đơn đặt phòng thành công vào CSDL
-  const handleConfirmHotelBooking = (bookingData) => {
-    const code = bookingData.booking?.booking_code || 'BK-' + Math.floor(100000 + Math.random() * 900000);
+  const handleConfirmBooking = ({ hotel, room, guest, booking, nights, totalPrice }) => {
     setBookingToast({
       show: true,
-      title: language === 'vi' ? 'Đặt phòng thành công & Đã lưu vào CSDL!' : 'Booking Confirmed & Saved to Database!',
+      title: language === 'vi' ? 'Đặt phòng thành công!' : 'Booking Confirmed!',
       message: language === 'vi'
-        ? `${bookingData.hotel.name} · ${bookingData.room.name}. Đơn đặt đã được ghi nhận trong CSDL. Xem trong "Đơn đặt phòng của tôi".`
-        : `${bookingData.hotel.name} · ${bookingData.room.name}. Reservation has been saved to the database. View under "My Bookings".`,
-      code
+        ? `Đã lưu đơn đặt phòng ${hotel.name} (${nights} đêm) thành công vào CSDL.`
+        : `Your reservation at ${hotel.name} (${nights} nights) has been saved in the database.`,
+      code: booking?.booking_code || booking?.bookingCode || 'BK-SUCCESS'
     });
-    // Cập nhật lại số lượng phòng trống của các khách sạn ngay lập tức
     fetchHotelsFromApi();
   };
 
-  // Tính số đêm lưu trú
+  // Filter and sort stays
+  const filteredHotels = hotels
+    .filter(h => {
+      if (filters.stars.length > 0 && !filters.stars.includes(h.starRating || h.stars)) return false;
+      const score = h.reviewScore || h.rating || 9.0;
+      if (score < filters.minScore) return false;
+      const price = h.priceVND || h.price_per_night || 0;
+      if (price > filters.maxPrice) return false;
+      if (filters.freeCancellation && !h.freeCancellation) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const priceA = a.priceVND || a.price_per_night || 0;
+      const priceB = b.priceVND || b.price_per_night || 0;
+      const scoreA = a.reviewScore || a.rating || 0;
+      const scoreB = b.reviewScore || b.rating || 0;
+
+      if (sortBy === 'price_asc') return priceA - priceB;
+      if (sortBy === 'price_desc') return priceB - priceA;
+      if (sortBy === 'score_desc') return scoreB - scoreA;
+      return 0;
+    });
+
   const calculateNights = () => {
     try {
-      const dIn = new Date(checkInDate);
-      const dOut = new Date(checkOutDate);
-      const diffDays = Math.round((dOut - dIn) / (1000 * 60 * 60 * 24));
-      return diffDays > 0 ? diffDays : 1;
+      if (!checkInDate || !checkOutDate) return 2;
+      let dIn, dOut;
+      if (checkInDate.includes('/')) {
+        const [d, m, y] = checkInDate.split('/');
+        dIn = new Date(`${y}-${m}-${d}`);
+      } else {
+        dIn = new Date(checkInDate);
+      }
+      if (checkOutDate.includes('/')) {
+        const [d, m, y] = checkOutDate.split('/');
+        dOut = new Date(`${y}-${m}-${d}`);
+      } else {
+        dOut = new Date(checkOutDate);
+      }
+      const diff = Math.round((dOut - dIn) / (1000 * 60 * 60 * 24));
+      return diff > 0 ? diff : 1;
     } catch {
       return 2;
     }
@@ -204,6 +220,7 @@ export default function App() {
             setAuthModal({ show: true, mode: 'login' });
           }
         }}
+        onOpenDistributedModal={() => setShowDistributedModal(true)}
       />
 
       {/* Main Content */}
@@ -271,96 +288,49 @@ export default function App() {
                       {language === 'vi' ? 'Giá (ưu tiên cao nhất)' : 'Price (highest first)'}
                     </Dropdown.Item>
                     <Dropdown.Item active={sortBy === 'score_desc'} onClick={() => setSortBy('score_desc')}>
-                      {language === 'vi' ? 'Điểm đánh giá tốt nhất' : 'Top reviewed'}
+                      {language === 'vi' ? 'Điểm đánh giá cao nhất' : 'Top reviewed'}
                     </Dropdown.Item>
                   </Dropdown.Menu>
                 </Dropdown>
               </div>
             </div>
 
-            {(activeSearchCity || filters.propertyType !== 'all' || filters.stars.length > 0 || filters.minScore > 0 || filters.freeCancellation) && (
-              <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
-                <span className="small text-muted">{language === 'vi' ? 'Đang lọc:' : 'Active filters:'}</span>
-                {activeSearchCity && (
-                  <Badge bg="primary" className="p-2 fw-normal d-flex align-items-center gap-1">
-                    <span>{activeSearchCity}</span>
-                    <i className="bi bi-x cursor-pointer" onClick={() => { setActiveSearchCity(''); setDestination(''); }}></i>
-                  </Badge>
-                )}
-                {filters.propertyType !== 'all' && (
-                  <Badge bg="secondary" className="p-2 fw-normal d-flex align-items-center gap-1">
-                    <span>{language === 'vi' ? 'Loại: ' : 'Type: '}{filters.propertyType}</span>
-                    <i className="bi bi-x cursor-pointer" onClick={() => setFilters(p => ({ ...p, propertyType: 'all' }))}></i>
-                  </Badge>
-                )}
-                {filters.stars.map(st => (
-                  <Badge key={st} bg="warning" text="dark" className="p-2 fw-normal d-flex align-items-center gap-1">
-                    <span>{st} {language === 'vi' ? 'sao' : 'stars'}</span>
-                    <i className="bi bi-x cursor-pointer" onClick={() => setFilters(p => ({ ...p, stars: p.stars.filter(s => s !== st) }))}></i>
-                  </Badge>
-                ))}
-                {filters.freeCancellation && (
-                  <Badge bg="success" className="p-2 fw-normal d-flex align-items-center gap-1">
-                    <span>{language === 'vi' ? 'Miễn phí hủy' : 'Free cancellation'}</span>
-                    <i className="bi bi-x cursor-pointer" onClick={() => setFilters(p => ({ ...p, freeCancellation: false }))}></i>
-                  </Badge>
-                )}
-                <button
-                  className="btn btn-sm btn-link text-decoration-none p-0 text-danger ms-2"
-                  onClick={handleResetFilters}
-                >
-                  {language === 'vi' ? 'Xóa tất cả bộ lọc' : 'Clear all'}
-                </button>
-              </div>
-            )}
-
-            <Row>
-              <Col lg={3} className="mb-4">
+            <Row className="g-4">
+              {/* Sidebar Filters */}
+              <Col lg={3} md={4}>
                 <FilterSidebar
                   filters={filters}
                   setFilters={setFilters}
-                  onResetFilters={handleResetFilters}
                   language={language}
                 />
               </Col>
 
-              <Col lg={9}>
-                {loadingHotels && hotels.length === 0 ? (
-                  <div className="text-center py-5 bg-white rounded-3 border">
-                    <Spinner animation="border" variant="primary" />
-                    <p className="mt-2 text-muted">
-                      {language === 'vi'
-                        ? 'Đang kết nối CSDL và kiểm tra phòng trống...'
-                        : 'Connecting to database & checking availability...'}
-                    </p>
-                  </div>
-                ) : hotels.length > 0 ? (
-                  hotels.map(hotel => (
+              {/* Hotel Cards List */}
+              <Col lg={9} md={8}>
+                {filteredHotels.length > 0 ? (
+                  filteredHotels.map(hotel => (
                     <HotelCard
                       key={hotel.id}
                       hotel={hotel}
                       currency={currency}
+                      language={language}
                       isFavorite={favorites.includes(hotel.id)}
                       onToggleFavorite={handleToggleFavorite}
-                      onSelectHotel={handleOpenHotel}
-                      language={language}
+                      onSelectHotel={handleSelectHotel}
                       nights={nightsCount}
+                      checkInDate={checkInDate}
+                      checkOutDate={checkOutDate}
                     />
                   ))
                 ) : (
-                  <div className="text-center py-5 bg-white rounded-3 border">
-                    <i className="bi bi-search text-muted" style={{ fontSize: '48px' }}></i>
-                    <h4 className="fw-bold mt-3 text-dark">
-                      {language === 'vi' ? 'Không tìm thấy chỗ nghỉ phù hợp' : 'No matching properties found'}
-                    </h4>
-                    <p className="text-muted">
+                  <div className="text-center py-5 bg-white rounded shadow-sm border p-4">
+                    <i className="bi bi-search text-muted display-4 mb-3 d-block"></i>
+                    <h5 className="fw-bold">{language === 'vi' ? 'Không tìm thấy chỗ nghỉ phù hợp' : 'No matching properties found'}</h5>
+                    <p className="text-muted small">
                       {language === 'vi'
-                        ? 'Thử nới lỏng các bộ lọc hoặc tìm kiếm địa điểm khác như Đà Nẵng, Hà Nội, TP. Hồ Chí Minh...'
-                        : 'Try broadening your filters or searching for cities like Da Nang, Hanoi, Ho Chi Minh City...'}
+                        ? 'Hãy thử điều chỉnh lại bộ lọc ngân sách, số sao hoặc chọn một địa điểm khác.'
+                        : 'Try adjusting your budget, stars filter, or select a different destination.'}
                     </p>
-                    <button className="btn btn-primary mt-2" onClick={handleResetFilters}>
-                      {language === 'vi' ? 'Xem tất cả chỗ nghỉ' : 'View all properties'}
-                    </button>
                   </div>
                 )}
               </Col>
@@ -369,33 +339,34 @@ export default function App() {
         </div>
       </>
 
-      {/* Hotel Detail Modal (For Stays) */}
+      {/* Hotel Detail & Booking Modal */}
       {selectedHotel && (
         <HotelDetailModal
-          key={selectedHotel?.id}
           hotel={selectedHotel}
           show={showHotelModal}
           onHide={() => setShowHotelModal(false)}
           currency={currency}
-          onConfirmBooking={handleConfirmHotelBooking}
           language={language}
           checkInDate={checkInDate}
           checkOutDate={checkOutDate}
           user={user}
+          onConfirmBooking={handleConfirmBooking}
         />
       )}
 
-      {/* Auth Modal (Login & Register with Real Database Persistence) */}
+      {/* Auth Modal (Login / Register) */}
       <AuthModal
         show={authModal.show}
-        mode={authModal.mode}
-        setMode={(mode) => setAuthModal(prev => ({ ...prev, mode }))}
+        initialMode={authModal.mode}
         onHide={() => setAuthModal({ show: false, mode: 'login' })}
-        onLoginSuccess={(userData) => setUser(userData)}
+        onLoginSuccess={(userData) => {
+          setUser(userData);
+          setAuthModal({ show: false, mode: 'login' });
+        }}
         language={language}
       />
 
-      {/* My Bookings Modal (User Bookings History & Cancellation) */}
+      {/* My Bookings Modal */}
       <MyBookingsModal
         show={showMyBookings}
         onHide={() => setShowMyBookings(false)}
@@ -405,7 +376,7 @@ export default function App() {
         onBookingsChanged={fetchHotelsFromApi}
       />
 
-      {/* Admin Dashboard Modal (Chỉ cho phép hiển thị khi đã đăng nhập tài khoản Admin) */}
+      {/* Admin Dashboard Modal */}
       {user?.role === 'admin' && (
         <AdminDashboardModal
           show={showAdminDashboard}
@@ -415,6 +386,12 @@ export default function App() {
           onDataChanged={fetchHotelsFromApi}
         />
       )}
+
+      {/* Distributed System Monitor Modal */}
+      <DistributedSystemModal
+        show={showDistributedModal}
+        onHide={() => setShowDistributedModal(false)}
+      />
 
       {/* Universal Booking Toast Notification */}
       <ToastContainer position="top-end" className="p-3 position-fixed" style={{ zIndex: 9999 }}>

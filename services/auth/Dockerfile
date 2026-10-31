@@ -4,5 +4,5 @@ COPY package*.json ./
 RUN npm install --omit=dev
 COPY services/auth ./services/auth
 COPY server/database ./server/database
-EXPOSE 5001
+EXPOSE 8080
 CMD ["node", "services/auth/src/index.js"]

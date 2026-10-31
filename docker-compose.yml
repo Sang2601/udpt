@@ -1,0 +1,352 @@
+version: '3.8'
+
+# ==============================================================================
+# KIẾN TRÚC ĐỀ XUẤT: MySQL + Docker Compose (PhenikaaHotel Distributed System)
+# Cấu trúc cổng chuẩn theo sơ đồ:
+# - Giao diện HTML / JavaScript : 5500
+# - Spring Cloud Gateway : 8088
+# - Auth-service : 8080
+# - User-service : 8081 (userdb MySQL)
+# - Booking-service : 8082 / 8085 (bookingdb MySQL - Cân bằng tải & Saga Orchestration)
+# - Room-service : 8083 / 8086 (roomdb MySQL - Cân bằng tải & Caching)
+# - Payment-service : 8084 (paymentdb MySQL)
+# ==============================================================================
+
+networks:
+  hotel-distributed-net:
+    driver: bridge
+
+volumes:
+  mysql-userdb-data:
+  mysql-bookingdb-data:
+  mysql-roomdb-data:
+  mysql-paymentdb-data:
+  db-backups:
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. Cơ sở dữ liệu phân tán (Database per Service - MySQL 8.x)
+  # ----------------------------------------------------------------------------
+  mysql-userdb:
+    image: mysql:8.0
+    container_name: mysql-userdb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: userdb
+    ports:
+      - "33061:3306"
+    volumes:
+      - mysql-userdb-data:/var/lib/mysql
+      - ./infra/mysql/init/01-userdb.sql:/docker-entrypoint-initdb.d/01-userdb.sql:ro
+    networks:
+      - hotel-distributed-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mysql-roomdb:
+    image: mysql:8.0
+    container_name: mysql-roomdb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: roomdb
+    ports:
+      - "33063:3306"
+    volumes:
+      - mysql-roomdb-data:/var/lib/mysql
+      - ./infra/mysql/init/02-roomdb.sql:/docker-entrypoint-initdb.d/02-roomdb.sql:ro
+    networks:
+      - hotel-distributed-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mysql-bookingdb:
+    image: mysql:8.0
+    container_name: mysql-bookingdb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: bookingdb
+    ports:
+      - "33062:3306"
+    volumes:
+      - mysql-bookingdb-data:/var/lib/mysql
+      - ./infra/mysql/init/03-bookingdb.sql:/docker-entrypoint-initdb.d/03-bookingdb.sql:ro
+    networks:
+      - hotel-distributed-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mysql-paymentdb:
+    image: mysql:8.0
+    container_name: mysql-paymentdb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: paymentdb
+    ports:
+      - "33064:3306"
+    volumes:
+      - mysql-paymentdb-data:/var/lib/mysql
+      - ./infra/mysql/init/04-paymentdb.sql:/docker-entrypoint-initdb.d/04-paymentdb.sql:ro
+    networks:
+      - hotel-distributed-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ----------------------------------------------------------------------------
+  # 2. Dịch vụ Sao lưu CSDL Tự động (Tính chịu lỗi & Backup)
+  # ----------------------------------------------------------------------------
+  db-backup:
+    image: alpine:latest
+    container_name: db-backup
+    restart: always
+    depends_on:
+      - mysql-userdb
+      - mysql-roomdb
+      - mysql-bookingdb
+      - mysql-paymentdb
+    volumes:
+      - ./backups:/backups
+    networks:
+      - hotel-distributed-net
+    entrypoint: >
+      /bin/sh -c "
+      apk add --no-cache mysql-client &&
+      echo 'Dịch vụ Sao lưu CSDL tự động đã khởi động...' &&
+      while true; do
+        sleep 3600;
+        TIMESTAMP=$$(date +%Y%m%d_%H%M%S);
+        echo \"[Backup] Đang sao lưu CSDL lúc $$TIMESTAMP...\";
+        mysqldump -h mysql-userdb -u root -prootpassword userdb > /backups/userdb_$$TIMESTAMP.sql 2>/dev/null || true;
+        mysqldump -h mysql-roomdb -u root -prootpassword roomdb > /backups/roomdb_$$TIMESTAMP.sql 2>/dev/null || true;
+        mysqldump -h mysql-bookingdb -u root -prootpassword bookingdb > /backups/bookingdb_$$TIMESTAMP.sql 2>/dev/null || true;
+        mysqldump -h mysql-paymentdb -u root -prootpassword paymentdb > /backups/paymentdb_$$TIMESTAMP.sql 2>/dev/null || true;
+        echo \"[Backup] Đã hoàn tất sao lưu 4 CSDL!\";
+      done
+      "
+
+  # ----------------------------------------------------------------------------
+  # 3. Các Microservices theo sơ đồ kiến trúc
+  # ----------------------------------------------------------------------------
+
+  # Auth Service (:8080)
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth/Dockerfile
+    container_name: auth-service
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      JWT_SECRET: super_secret_jwt_key_phenikaa_hotel_2026
+      USER_SERVICE_URL: http://user-service:8081
+    depends_on:
+      - user-service
+    networks:
+      - hotel-distributed-net
+
+  # User Service (:8081) - Kết nối userdb
+  user-service:
+    build:
+      context: .
+      dockerfile: services/user/Dockerfile
+    container_name: user-service
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: 8081
+      MYSQL_HOST: mysql-userdb
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: rootpassword
+      MYSQL_DATABASE: userdb
+    depends_on:
+      mysql-userdb:
+        condition: service_healthy
+    networks:
+      - hotel-distributed-net
+
+  # Room Service Replica 1 (:8083) - Kết nối roomdb
+  room-service-1:
+    build:
+      context: .
+      dockerfile: services/room/Dockerfile
+    container_name: room-service-1
+    restart: always
+    ports:
+      - "8083:8083"
+    environment:
+      PORT: 8083
+      SERVICE_INSTANCE_ID: room-replica-1
+      MYSQL_HOST: mysql-roomdb
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: rootpassword
+      MYSQL_DATABASE: roomdb
+    depends_on:
+      mysql-roomdb:
+        condition: service_healthy
+    networks:
+      - hotel-distributed-net
+
+  # Room Service Replica 2 (:8086) - Cân bằng tải
+  room-service-2:
+    build:
+      context: .
+      dockerfile: services/room/Dockerfile
+    container_name: room-service-2
+    restart: always
+    ports:
+      - "8086:8086"
+    environment:
+      PORT: 8086
+      SERVICE_INSTANCE_ID: room-replica-2
+      MYSQL_HOST: mysql-roomdb
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: rootpassword
+      MYSQL_DATABASE: roomdb
+    depends_on:
+      mysql-roomdb:
+        condition: service_healthy
+    networks:
+      - hotel-distributed-net
+
+  # Payment Service (:8084) - Kết nối paymentdb
+  payment-service:
+    build:
+      context: .
+      dockerfile: services/payment/Dockerfile
+    container_name: payment-service
+    restart: always
+    ports:
+      - "8084:8084"
+    environment:
+      PORT: 8084
+      MYSQL_HOST: mysql-paymentdb
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: rootpassword
+      MYSQL_DATABASE: paymentdb
+    depends_on:
+      mysql-paymentdb:
+        condition: service_healthy
+    networks:
+      - hotel-distributed-net
+
+  # Booking Service Replica 1 (:8082) - Saga Orchestration & bookingdb
+  booking-service-1:
+    build:
+      context: .
+      dockerfile: services/booking/Dockerfile
+    container_name: booking-service-1
+    restart: always
+    ports:
+      - "8082:8082"
+    environment:
+      PORT: 8082
+      SERVICE_INSTANCE_ID: booking-replica-1
+      MYSQL_HOST: mysql-bookingdb
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: rootpassword
+      MYSQL_DATABASE: bookingdb
+      ROOM_SERVICE_URL: http://gateway:8088
+      PAYMENT_SERVICE_URL: http://payment-service:8084
+    depends_on:
+      mysql-bookingdb:
+        condition: service_healthy
+      payment-service:
+        condition: service_started
+    networks:
+      - hotel-distributed-net
+
+  # Booking Service Replica 2 (:8085) - Cân bằng tải
+  booking-service-2:
+    build:
+      context: .
+      dockerfile: services/booking/Dockerfile
+    container_name: booking-service-2
+    restart: always
+    ports:
+      - "8085:8085"
+    environment:
+      PORT: 8085
+      SERVICE_INSTANCE_ID: booking-replica-2
+      MYSQL_HOST: mysql-bookingdb
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: rootpassword
+      MYSQL_DATABASE: bookingdb
+      ROOM_SERVICE_URL: http://gateway:8088
+      PAYMENT_SERVICE_URL: http://payment-service:8084
+    depends_on:
+      mysql-bookingdb:
+        condition: service_healthy
+    networks:
+      - hotel-distributed-net
+
+  # ----------------------------------------------------------------------------
+  # 4. Spring Cloud Gateway (:8088)
+  # ----------------------------------------------------------------------------
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: gateway
+    restart: always
+    ports:
+      - "8088:8088"
+    environment:
+      PORT: 8088
+      AUTH_SERVICE_URLS: http://auth-service:8080
+      USER_SERVICE_URLS: http://user-service:8081
+      BOOKING_SERVICE_URLS: http://booking-service-1:8082,http://booking-service-2:8085
+      ROOM_SERVICE_URLS: http://room-service-1:8083,http://room-service-2:8086
+      PAYMENT_SERVICE_URLS: http://payment-service:8084
+    depends_on:
+      - auth-service
+      - user-service
+      - room-service-1
+      - room-service-2
+      - booking-service-1
+      - booking-service-2
+      - payment-service
+    networks:
+      - hotel-distributed-net
+
+  # ----------------------------------------------------------------------------
+  # 5. Giao diện Người dùng HTML / JavaScript (:5500)
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: frontend
+    restart: always
+    ports:
+      - "5500:5500"
+    environment:
+      VITE_API_GATEWAY_URL: http://localhost:8088
+    depends_on:
+      - gateway
+    networks:
+      - hotel-distributed-net
+

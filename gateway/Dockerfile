@@ -3,5 +3,5 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --omit=dev
 COPY gateway ./gateway
-EXPOSE 5000
+EXPOSE 8088
 CMD ["node", "gateway/src/index.js"]

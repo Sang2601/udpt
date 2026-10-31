@@ -26,3 +26,9 @@ dist-ssr
 # Database temporary files
 *.sqlite-wal
 *.sqlite-shm
+
+# Backup files
+backups/*.sqlite
+backups/*.sql
+backups/*.json
+!backups/.gitkeep

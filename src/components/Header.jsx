@@ -10,7 +10,8 @@ export default function Header({
   onOpenAuth,
   onLogout,
   onOpenMyBookings,
-  onOpenAdminDashboard
+  onOpenAdminDashboard,
+  onOpenDistributedModal
 }) {
   const isAdmin = user?.role === 'admin';
 
@@ -63,6 +64,19 @@ export default function Header({
                 </Dropdown.Menu>
               </Dropdown>
 
+              {/* Button: Bảng Điều Khiển Hệ Thống Phân Tán (Dành cho Môn Ứng dụng Phân tán) */}
+              <Button
+                variant="outline-light"
+                size="sm"
+                className="header-btn d-flex align-items-center gap-1.5 fw-semibold shadow-sm"
+                style={{ borderColor: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.1)' }}
+                onClick={onOpenDistributedModal}
+                title="Xem Sơ đồ cổng, 4 CSDL MySQL, Cân bằng tải, Chịu tải và Sao lưu"
+              >
+                <i className="bi bi-diagram-3-fill text-warning"></i>
+                <span className="d-none d-md-inline">Hệ Thống Phân Tán</span>
+              </Button>
+
               {/* Button: Trang Quản Trị (Chỉ hiển thị khi đã đăng nhập bằng tài khoản Admin) */}
               {isAdmin && (
                 <Button
@@ -114,6 +128,11 @@ export default function Header({
                     <Dropdown.Item onClick={onOpenMyBookings} className="py-2">
                       <i className="bi bi-journal-text me-2" style={{ color: 'var(--pka-orange)' }}></i>
                       {language === 'vi' ? 'Đơn đặt phòng của tôi' : 'My Bookings'}
+                    </Dropdown.Item>
+
+                    <Dropdown.Item onClick={onOpenDistributedModal} className="py-2">
+                      <i className="bi bi-diagram-3 me-2 text-primary"></i>
+                      Giám sát hệ thống phân tán
                     </Dropdown.Item>
 
                     {isAdmin && (
