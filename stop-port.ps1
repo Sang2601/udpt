@@ -11,6 +11,8 @@ if (-not $Targets -or $Targets.Count -eq 0) {
     exit
 }
 
+$baseDir = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
+
 $servicePortMap = @{
     "auth"     = 8080
     "user"     = 8081
