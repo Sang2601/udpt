@@ -1,0 +1,29 @@
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{background:#f4f6f9;color:#1a1a1a}
+.header{height:64px;background:#000;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px}
+.header .logo{font-size:20px;font-weight:800;letter-spacing:1px}
+.header .user{display:flex;align-items:center;gap:12px;font-size:14px}
+.header button{padding:6px 14px;border-radius:6px;border:none;background:#fff;color:#000;font-weight:600;cursor:pointer}
+.wrapper{display:flex;min-height:calc(100vh - 64px)}
+.sidebar{width:240px;background:#fff;border-right:1px solid #e5e7eb;padding:20px}
+.sidebar a{display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:8px;border-radius:10px;text-decoration:none;color:#374151;font-weight:600;cursor:pointer}
+.sidebar a:hover{background:#f3f4f6}
+.sidebar a.active{background:#000;color:#fff}
+.content{flex:1;padding:32px}
+.page-title{font-size:26px;font-weight:800;margin-bottom:24px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px}
+.stat{background:#fff;padding:22px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+.stat span{font-size:13px;color:#6b7280}
+.stat h2{margin-top:8px;font-size:30px;font-weight:800}
+.card{background:#fff;border-radius:16px;padding:22px;margin-top:24px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:14px;border-bottom:1px solid #e5e7eb;text-align:left}
+th{color:#6b7280;font-weight:700}
+.badge{padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700}
+.pending{background:#fff4e5;color:#a35b00}
+.approved{background:#e8f7ee;color:#1e824c}
+.canceled{background:#fdecea;color:#b91c1c}
+.btn{padding:7px 14px;border-radius:6px;font-size:13px;cursor:pointer}
+.btn-primary{background:#000;color:#fff;border:none}
+.btn-outline{background:#fff;border:1px solid #000}
+@media(max-width:900px){.sidebar{display:none}}

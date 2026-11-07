@@ -1,0 +1,206 @@
+/* ===== RESET ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* ===== BODY ===== */
+body {
+  min-height: 100vh;
+  background: linear-gradient(
+    180deg,
+    #6a7a7b 0%,
+    #3f8c94 100%
+  );
+}
+
+/* ===== NAVBAR (COPY TỪ BOOKING) ===== */
+header {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 100;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(6px);
+}
+
+.header-inner {
+  max-width: 1200px;
+  margin: auto;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: white;
+}
+
+.logo {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+nav a {
+  margin: 0 12px;
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+nav a:hover {
+  text-decoration: underline;
+}
+
+.auth a {
+  margin-left: 10px;
+  padding: 6px 14px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.login {
+  border: 1px solid white;
+  color: white;
+}
+
+/* ===== PAGE HEADER ===== */
+.page-header {
+  text-align: center;
+  margin-top: 80px; /* ✅ né navbar fixed */
+  padding: 20px 16px 10px;
+}
+
+.page-header h1 {
+  font-size: 32px;
+}
+
+.page-header p {
+  margin-top: 8px;
+  color: #666;
+}
+
+/* ===== TAB WRAPPER ===== */
+.tab-wrapper {
+  max-width: 980px;
+  margin: 8px auto 60px; /* 👈 ĐÃ ĐẨY TAB LÊN */
+  background: white;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 18px 45px rgba(0,0,0,0.12);
+}
+
+/* ===== TAB HEADER ===== */
+.tab-header {
+  position: relative;
+  display: flex;
+  height: 60px;
+  background: #f1f1f1;
+}
+
+.tab-header button {
+  flex: 1;
+  border: none;
+  background: none;
+  font-size: 16px;
+  cursor: pointer;
+  z-index: 2;
+  color: #666;
+}
+
+.tab-header button.active {
+  color: white;
+  font-weight: 600;
+}
+
+/* ===== INDICATOR ===== */
+.tab-indicator {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: calc(50% - 12px);
+  height: calc(100% - 12px);
+  border-radius: 14px;
+
+  /* ✅ GIỮ NGUYÊN MÀU NHƯ HÌNH */
+  background: linear-gradient(
+    135deg,
+    #7b8b8c,
+    #4f9da6
+  );
+
+  transition: transform 0.45s cubic-bezier(.4,0,.2,1);
+  z-index: 1;
+}
+
+/* ===== TAB CONTENT ===== */
+.tab-content {
+  display: flex;
+  width: 200%;
+  transition: transform 0.4s ease;
+}
+
+.tab-panel {
+  width: 50%;
+  padding: 30px;
+}
+
+/* ===== CARD ===== */
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 22px 26px;
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #e4e6e8;
+}
+
+.card h3 {
+  margin-bottom: 6px;
+}
+
+.card p {
+  color: #666;
+}
+
+/* ===== STATUS ===== */
+.status {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+}
+
+.status.active {
+  background: #e8f6f7;
+  color: #1c7c86;
+}
+
+.status.cancelled {
+  background: #fdecea;
+  color: #d32f2f;
+}
+
+/* ===== BUTTON ===== */
+.btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-pay {
+  background: #000;
+  color: white;
+}
+
+.btn-cancel {
+  background: transparent;
+  border: 1px solid #d32f2f;
+  color: #d32f2f;
+}

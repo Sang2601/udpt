@@ -1,0 +1,21 @@
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
+body{height:100vh;background:#000;overflow:hidden}
+.bg{position:fixed;inset:0;background:url("https://images.unsplash.com/photo-1542314831-068cd1dbfeeb") center/cover no-repeat;filter:blur(8px);transform:scale(1.1)}
+.bg::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.55)}
+header{position:fixed;top:0;width:100%;z-index:10;background:rgba(0,0,0,.5);backdrop-filter:blur(6px)}
+.header-inner{max-width:1200px;margin:auto;padding:14px 20px;display:flex;justify-content:space-between;color:#fff}
+.logo{font-size:22px;font-weight:800}
+nav a{margin:0 12px;color:#fff;text-decoration:none}
+.login-layer{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+.auth-card{background:#fff;max-width:420px;width:100%;padding:34px;border-radius:22px;box-shadow:0 40px 90px rgba(0,0,0,.4)}
+.auth-title{text-align:center;font-size:22px;font-weight:700;margin-bottom:24px}
+.tabs{display:flex;margin-bottom:22px}
+.tab{flex:1;text-align:center;padding:10px;cursor:pointer;font-weight:600;border-bottom:2px solid #ddd}
+.tab.active{border-bottom:2px solid #000}
+.form-group{margin-bottom:16px}
+label{display:block;font-size:14px;margin-bottom:6px}
+input{width:100%;padding:13px;border-radius:10px;border:1px solid #ccc}
+button{width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#000,#222);color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+.status{text-align:center;margin-top:14px;font-size:14px}
+.success{color:#1bbf6b;font-weight:600}
+.error{color:#e74c3c}

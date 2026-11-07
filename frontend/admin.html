@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin | Phenikaa Hotel</title>
+
+<link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body>
+
+<div class="header">
+  <div class="logo">PHENIKAA ADMIN</div>
+  <div class="user">👋 Admin <button onclick="logout()">Đăng xuất</button></div>
+</div>
+
+<div class="wrapper">
+<aside class="sidebar">
+  <a class="active" onclick="show('dashboard',this)">📊 Dashboard</a>
+  <a onclick="show('bookings',this)">🛎 Booking</a>
+  <a onclick="show('rooms',this)">🏨 Phòng</a>
+  <a onclick="show('users',this)">👤 Người dùng</a>
+</aside>
+
+<main class="content">
+
+<section id="dashboard">
+  <div class="page-title">Tổng quan</div>
+  <div class="stats">
+    <div class="stat"><span>Phòng</span><h2 id="statRooms">0</h2></div>
+    <div class="stat"><span>Booking</span><h2 id="statBookings">0</h2></div>
+    <div class="stat"><span>Người dùng</span><h2 id="statUsers">0</h2></div>
+
+    <div class="stat">
+  <span>Doanh thu</span>
+  <h2 id="statRevenue">0 đ</h2>
+</div>
+
+  </div>
+</section>
+
+<section id="bookings" style="display:none">
+  <div class="page-title">Quản lý Booking</div>
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Email</th>
+          <th>Room</th>
+          <th>Ngày</th>
+          <th>Trạng thái</th>
+          <th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody id="bookingTable"></tbody>
+    </table>
+  </div>
+</section>
+
+<section id="rooms" style="display:none">
+  <div class="page-title">Quản lý Phòng</div>
+  <div class="card">
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Tên</th><th>Sức chứa</th><th>Giá</th><th></th></tr>
+      </thead>
+      <tbody id="roomTable"></tbody>
+    </table>
+  </div>
+</section>
+
+<section id="users" style="display:none">
+  <div class="page-title">Quản lý Người dùng</div>
+  <div class="card">
+    <table>
+      <thead>
+        <tr><th>Username</th><th>Email</th><th>Role</th></tr>
+      </thead>
+      <tbody id="userBody"></tbody>
+    </table>
+  </div>
+</section>
+
+</main>
+</div>
+
+<script src="js/admin.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lịch sử đặt phòng</title>
+
+<link rel="stylesheet" href="css/history.css">
+</head>
+
+<body>
+
+<!-- ===== NAVBAR ===== -->
+<header>
+  <div class="header-inner">
+    <div class="logo">PHENIKAA HOTEL</div>
+    <nav>
+      <a href="booking.html">Trang chủ</a>
+      <a href="booking.html#search">Đặt phòng</a>
+      <a href="payment.html">Thanh toán</a>
+      <a href="history.html">Lịch sử</a>
+    </nav>
+    <div class="auth" id="authArea"></div>
+  </div>
+</header>
+
+<!-- ===== HEADER ===== -->
+<div class="page-header">
+  <h1>Lịch sử đặt phòng</h1>
+</div>
+
+<!-- ===== TABS ===== -->
+<div class="tab-wrapper">
+  <div class="tab-header">
+    <div class="tab-indicator"></div>
+    <button class="tab-btn active" onclick="switchTab(0)">Đang hoạt động</button>
+    <button class="tab-btn" onclick="switchTab(1)">Đã huỷ</button>
+  </div>
+
+  <div class="tab-content" id="tabContent">
+    <div class="tab-panel" id="activeList">Đang tải...</div>
+    <div class="tab-panel" id="cancelList">Đang tải...</div>
+  </div>
+</div>
+
+<script src="js/history.js" defer></script>
+</body>
+</html>

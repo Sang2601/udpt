@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phenikaa Hotel</title>
+
+<link rel="stylesheet" href="css/booking.css">
+</head>
+
+<body>
+
+<script src="js/booking.js" defer></script>
+
+<header>
+    <div class="header-inner">
+        <div class="logo">PHENIKAA HOTEL</div>
+        <nav>
+  <a href="booking.html">Trang chủ</a>
+  <a href="booking.html#search">Đặt phòng</a>
+  <a href="payment.html">Thanh toán</a>
+  <a href="history.html">Lịch sử</a>
+</nav>
+
+        <div class="auth" id="authArea"></div>
+    </div>
+</header>
+
+<section class="hero">
+    <div class="slide active" style="background-image:url('https://images.unsplash.com/photo-1542314831-068cd1dbfeeb')"></div>
+    <div class="slide" style="background-image:url('https://images.unsplash.com/photo-1566073771259-6a8506099945')"></div>
+    <div class="slide" style="background-image:url('https://images.unsplash.com/photo-1551882547-ff40c63fe5fa')"></div>
+    <div class="hero-overlay"></div>
+
+    <div class="hero-content">
+        <h1>Trải nghiệm nghỉ dưỡng đẳng cấp</h1>
+        <p>Phenikaa Hotel – sang trọng, tiện nghi, chuyên nghiệp</p>
+
+        <div class="search-box" id="search">
+    <input id="location" placeholder="Bạn muốn đến đâu?">
+    <input type="date" id="checkIn">
+    <input type="date" id="checkOut">
+    <select id="capacity">
+        <option value="2">2 người · 1 phòng</option>
+        <option value="3">3 người · 1 phòng</option>
+        <option value="4">4 người · 1 phòng</option>
+    </select>
+    <button onclick="searchRooms()">Tìm phòng</button>
+</div>
+
+    </div>
+</section>
+
+<div class="container">
+    <div class="section-title">Các hạng phòng nổi bật</div>
+    <div class="cards" id="roomList"></div>
+</div>
+
+<!-- ===== ROOM FULLSCREEN MODAL ===== -->
+<div id="roomModal" class="room-modal">
+    <div class="room-modal-content">
+
+        <div class="modal-left">
+            <button class="modal-nav prev" onclick="prevModalImage()">‹</button>
+            <img id="modalImage" />
+            <button class="modal-nav next" onclick="nextModalImage()">›</button>
+        </div>
+
+        <div class="modal-right">
+            <div class="modal-info">
+                <h2 id="modalRoomName"></h2>
+                <p id="modalRoomCapacity"></p>
+                <p id="modalRoomPrice"></p>
+            </div>
+
+            <div class="modal-amenities">
+                <h4>Tiện nghi phòng</h4>
+                <ul>
+                    <li>🛏️ Giường đôi cỡ lớn, nệm cao cấp</li>
+                    <li>🌄 View ban công</li>
+                    <li>❄️ Điều hòa hai chiều</li>
+                    <li>📺 TV màn hình phẳng</li>
+                    <li>📶 Wi-Fi miễn phí</li>
+                    <li>☕ Trà & cà phê</li>
+                    <li>🚿 Phòng tắm riêng</li>
+                </ul>
+            </div>
+
+            <div class="modal-booking">
+                <button class="modal-back-btn" onclick="closeRoomModal()">
+                    ← Quay về
+                </button>
+                <div id="modalAction"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

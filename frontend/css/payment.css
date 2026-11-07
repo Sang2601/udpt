@@ -1,0 +1,260 @@
+/* ===== RESET ===== */
+* {
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #6f7f80, #3f8f98);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #1f1f1f;
+}
+
+/* ===== CARD ===== */
+.payment-card {
+  background: white;
+  width: 420px;
+  padding: 36px 34px 42px;
+  border-radius: 22px;
+  text-align: center;
+  box-shadow: 0 30px 70px rgba(0,0,0,0.25);
+  position: relative;
+}
+
+/* ===== TITLE ===== */
+.payment-card h1 {
+  margin: 0 0 10px;
+  font-size: 26px;
+}
+
+.sub {
+  color: #6b6b6b;
+  margin-bottom: 26px;
+}
+
+/* ===== INFO ===== */
+.info {
+  background: #f6f7f8;
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 26px;
+  text-align: left;
+}
+
+.info p {
+  margin: 6px 0;
+  font-size: 15px;
+}
+
+.amount {
+  font-size: 20px;
+  font-weight: 700;
+  margin-top: 10px;
+}
+
+/* ===== PAY BUTTON ===== */
+.pay-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 999px;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  color: white;
+  background: linear-gradient(135deg, #4f9da6, #357d84);
+  box-shadow: 0 10px 24px rgba(79,157,166,0.45);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.pay-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(79,157,166,0.55);
+}
+
+/* ===== SUCCESS OVERLAY ===== */
+.success {
+  position: absolute;
+  inset: 0;
+  background: white;
+  border-radius: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.success.show {
+  animation: fadeIn 0.4s ease forwards;
+}
+
+.check {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4f9da6, #2f7f86);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 44px;
+  margin-bottom: 18px;
+  animation: pop 0.6s ease forwards;
+}
+
+.success p {
+  font-size: 16px;
+  color: #555;
+}
+
+/* ===== ANIMATION ===== */
+@keyframes pop {
+  0% { transform: scale(0.2); opacity: 0; }
+  70% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; pointer-events: all; }
+}
+/* ===== SLIDE TO PAY ===== */
+.slide-pay {
+  position: relative;
+  width: 100%;
+  height: 54px;
+  background: #e6ecec;
+  border-radius: 999px;
+  overflow: hidden;
+  user-select: none;
+}
+/* PHẦN MÀU CHẠY */
+.slide-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(
+    135deg,
+    #3f8f97,
+    #2f6f74
+  );
+  transition: width 0.1s;
+  overflow: visible;
+
+}
+
+
+.slide-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5f6f70;
+  font-size: 15px;
+  font-weight: 500;
+  transition: opacity 0.1s;
+}
+
+.slide-handle {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4f9da6, #2f7f86);
+  color: white;
+  font-size: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(79,157,166,0.5);
+  transition: background 0.3s;
+}
+
+/* ===== WAVE EFFECT ===== */
+.wave {
+  position: absolute;
+  right: -26px;
+  top: -30%;
+  width: 52px;
+  height: 160%;
+  background: rgba(255,255,255,0.55);
+  filter: blur(6px);
+  border-radius: 50%;
+  pointer-events: none;
+
+  animation: waveMove 1.6s ease-in-out infinite;
+  transform-origin: center;
+  transform: scaleY(var(--scale, 1));
+}
+
+
+/* ===== 2 LỚP SÓNG ===== */
+.wave-main {
+  background: rgba(255,255,255,0.55);
+  animation-duration: 1.6s;
+}
+
+.wave-sub {
+  background: rgba(255,255,255,0.35);
+  filter: blur(10px);
+  animation-duration: 2.4s;
+  top: -40%;
+}
+
+/* ===== GIỌT NƯỚC ===== */
+.drop {
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  background: rgba(255,255,255,0.8);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0) scale(1);
+}
+
+.drop.active {
+  animation: splash 0.6s ease-out forwards;
+}
+
+/* 💥 GIỌT NƯỚC BẮN TUNG */
+@keyframes splashBurst {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--x), var(--y)) scale(0.2);
+  }
+}
+
+.drop.burst {
+  animation: splashBurst 0.8s ease-out forwards;
+}
+
+
+@keyframes waveMove {
+  0% {
+    margin-right: 0;
+  }
+  50% {
+    margin-right: 8px;
+  }
+  100% {
+    margin-right: 0;
+  }
+}

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thanh toán</title>
+
+<link rel="stylesheet" href="css/payment.css">
+</head>
+
+<body>
+
+<div class="payment-card">
+
+  <h1>💳 Thanh toán</h1>
+  <p class="sub">Hoàn tất thanh toán để xác nhận booking</p>
+
+  <div class="info">
+    <p><strong>Mã booking:</strong> <span id="bookingId"></span></p>
+    <p class="amount" id="amount">Đang tính tiền...</p>
+  </div>
+
+ <div class="slide-pay" id="slidePay">
+
+  <div class="slide-fill" id="slideFill">
+    <div class="wave wave-main"></div>
+    <div class="wave wave-sub"></div>
+
+    <!-- 💧 giọt nước -->
+    <span class="drop"></span>
+    <span class="drop"></span>
+    <span class="drop"></span>
+  </div>
+
+  <div class="slide-text">Kéo để xác nhận thanh toán</div>
+  <div class="slide-handle" id="slideHandle">›</div>
+
+</div>
+
+
+  <!-- SUCCESS -->
+  <div class="success" id="successBox">
+    <div class="check">✓</div>
+    <p>Thanh toán thành công<br>Đang chuyển tới lịch sử đặt phòng…</p>
+  </div>
+
+</div>
+
+<script src="js/payment.js" defer></script>
+</body>
+</html>
