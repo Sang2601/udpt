@@ -2,6 +2,7 @@ package com.example.roomservice.service;
 
 import com.example.roomservice.entity.Room;
 import com.example.roomservice.repository.RoomRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -16,22 +17,23 @@ public class RoomService {
         this.roomRepository = roomRepository;
     }
 
-    // 🔍 SEARCH AVAILABLE ROOMS (đã có)
+    // 🔍 SEARCH AVAILABLE ROOMS
+    @Cacheable(value = "searchRooms", key = "#capacity")
     public List<Room> searchAvailableRooms(
             int capacity,
             LocalDate checkIn,
             LocalDate checkOut
     ) {
-        // ⚠️ hiện tại demo: chỉ lọc theo capacity
         return roomRepository.findByCapacity(capacity);
     }
 
-    // 📋 ADMIN: GET ALL ROOMS
+    // 📋 ADMIN: GET ALL ROOMS (Cached for high throughput scalability)
+    @Cacheable(value = "allRooms")
     public List<Room> getAllRooms() {
         return roomRepository.findAll();
     }
 
-    // 🔥 GET ROOM BY ID (CHO BOOKING ADMIN)
+    // 🔥 GET ROOM BY ID
     public Room getRoomById(Long id) {
         return roomRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Room not found"));

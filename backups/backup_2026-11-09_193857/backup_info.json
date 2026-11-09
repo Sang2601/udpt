@@ -1,0 +1,33 @@
+﻿{
+    "backupName":  "backup_2026-11-09_193857",
+    "createdAt":  "2026-11-09T19:38:57.2401558+07:00",
+    "totalFiles":  5,
+    "files":  [
+                  {
+                      "fileName":  "bookingdb.lock.db",
+                      "sizeBytes":  150,
+                      "sha256":  "3A8B40760BCEC11157ABAA18B8420408114162F78B7D05D62E501094F678545F"
+                  },
+                  {
+                      "fileName":  "paymentdb.lock.db",
+                      "sizeBytes":  150,
+                      "sha256":  "B2C37AF90EABC9F0B93741C9DA8E835B2EE36E7A286E147C0475F1C66504534C"
+                  },
+                  {
+                      "fileName":  "roomdb.lock.db",
+                      "sizeBytes":  150,
+                      "sha256":  "97908D2EAC3DDD612064C4A93FCA95191C43307D4AE9FFE98991302ECB513F57"
+                  },
+                  {
+                      "fileName":  "roomdb.trace.db",
+                      "sizeBytes":  2740,
+                      "sha256":  "3139C55CD9D93F423B8F7123BDAEC24A35724DACF58659C8C8312061A1993278"
+                  },
+                  {
+                      "fileName":  "userdb.lock.db",
+                      "sizeBytes":  150,
+                      "sha256":  "DB326BCF55380942994902006AE60178566E5A981C17EDB5CFDC684D7D83F1E1"
+                  }
+              ],
+    "status":  "PARTIAL"
+}

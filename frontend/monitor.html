@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distributed Cluster Monitor - Hotel Booking System</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --primary: #38bdf8;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --accent: #818cf8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: var(--bg-color); color: var(--text-main); min-height: 100vh; padding: 24px; }
+        header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--card-border); margin-bottom: 24px; }
+        h1 { font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
+        .badge { padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+        .badge-live { background: rgba(34, 197, 94, 0.2); color: var(--success); border: 1px solid var(--success); }
+        .nav-links a { color: var(--primary); text-decoration: none; margin-left: 16px; font-weight: 500; font-size: 0.9rem; }
+        .nav-links a:hover { text-decoration: underline; }
+        
+        .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-bottom: 28px; }
+        .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 18px; transition: transform 0.2s, box-shadow 0.2s; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .service-name { font-size: 1.05rem; font-weight: 600; }
+        .service-port { font-size: 0.8rem; color: var(--text-sub); }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .status-online { background: var(--success); box-shadow: 0 0 8px var(--success); }
+        .status-down { background: var(--danger); }
+        .status-starting { background: var(--warning); }
+        .metric-row { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-sub); margin-top: 6px; }
+        .metric-val { color: var(--text-main); font-weight: 600; }
+
+        .section-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+        .panel { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+        
+        .lb-bar-container { margin-top: 14px; }
+        .lb-bar-label { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; }
+        .progress-bar { height: 12px; background: #334155; border-radius: 6px; overflow: hidden; display: flex; }
+        .bar-slice-1 { background: var(--primary); transition: width 0.3s; }
+        .bar-slice-2 { background: var(--accent); transition: width 0.3s; }
+
+        .btn { background: var(--primary); color: #0f172a; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-secondary { background: #334155; color: var(--text-main); }
+
+        .controls-row { display: flex; gap: 12px; align-items: center; margin-top: 16px; }
+        .test-log { background: #0f172a; border-radius: 8px; padding: 12px; margin-top: 14px; font-family: monospace; font-size: 0.8rem; max-height: 140px; overflow-y: auto; }
+        .test-log-line { margin-bottom: 4px; color: var(--text-sub); }
+        .test-log-line.success { color: var(--success); }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <h1>Distributed Cluster Monitor <span class="badge badge-live">LIVE</span></h1>
+            <p style="color: var(--text-sub); font-size: 0.85rem; margin-top: 4px;">Real-time Node Health, Load Balancer Dispatch, and Cluster Orchestration</p>
+        </div>
+        <div class="nav-links">
+            <a href="index.html">← Trở về Đặt phòng</a>
+            <a href="admin.html">Trang Quản trị</a>
+        </div>
+    </header>
+
+    <h2 class="section-title">Cluster Microservices Topology</h2>
+    <div class="grid-cards" id="servicesGrid">
+        <!-- Rendered dynamically -->
+    </div>
+
+    <h2 class="section-title">Spring Cloud Gateway - Load Balancer Live Visualizer</h2>
+    <div class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <strong style="color: var(--primary); font-size: 1.1rem;">Room Service Instances (Ports 8083 & 8085)</strong>
+                <p style="color: var(--text-sub); font-size: 0.85rem;">Algorithm: Round-Robin (Health-Aware) with Auto-Retry Failover</p>
+            </div>
+            <div class="controls-row">
+                <button class="btn" id="btnTestBatch" onclick="sendTestBatch(10)">Gửi 10 Request Kiểm thử</button>
+                <button class="btn btn-secondary" onclick="refreshLbStatus()">Làm mới</button>
+            </div>
+        </div>
+
+        <div class="lb-bar-container">
+            <div class="lb-bar-label">
+                <span><span style="color: var(--primary);">■</span> Instance 1 (8083): <strong id="count8083">0</strong> reqs (<span id="pct8083">0%</span>)</span>
+                <span><span style="color: var(--accent);">■</span> Instance 2 (8085): <strong id="count8085">0</strong> reqs (<span id="pct8085">0%</span>)</span>
+            </div>
+            <div class="progress-bar">
+                <div class="bar-slice-1" id="bar8083" style="width: 50%;"></div>
+                <div class="bar-slice-2" id="bar8085" style="width: 50%;"></div>
+            </div>
+        </div>
+
+        <div class="test-log" id="testLog">
+            <div class="test-log-line">Nhấn 'Gửi 10 Request Kiểm thử' để quan sát bộ cân bằng tải phân phối request luân phiên...</div>
+        </div>
+    </div>
+
+    <h2 class="section-title">Fault Tolerance & Storage Architecture</h2>
+    <div class="panel">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+            <div>
+                <strong style="color: var(--accent);">Persistent Shared Database</strong>
+                <p style="color: var(--text-sub); font-size: 0.85rem; margin-top: 6px;">
+                    Mode: H2 File Database (<code>AUTO_SERVER=TRUE</code>)<br>
+                    Data Directory: <code>./data/*.mv.db</code><br>
+                    Connection Pool: HikariCP (Max 10, Min 2, Timeout 10s)
+                </p>
+            </div>
+            <div>
+                <strong style="color: var(--accent);">Automated Backup & Recovery</strong>
+                <p style="color: var(--text-sub); font-size: 0.85rem; margin-top: 6px;">
+                    Backup Retention: 7 ngày (tự động xóa bản ghi quá hạn)<br>
+                    Snapshot Format: <code>backups/backup_YYYY-MM-DD_HHmmss/</code><br>
+                    Integrity: SHA-256 Checksum Verification
+                </p>
+            </div>
+            <div>
+                <strong style="color: var(--accent);">Self-Healing Orchestration</strong>
+                <p style="color: var(--text-sub); font-size: 0.85rem; margin-top: 6px;">
+                    Health Probe: <code>/actuator/health</code> (chu kỳ 4s)<br>
+                    Watchdog: Tự động khởi động lại service khi gặp sự cố crash<br>
+                    Failover: Gateway tự động chuyển tiếp sang node còn sống khi 1 node lỗi
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/monitor.js"></script>
+</body>
+</html>

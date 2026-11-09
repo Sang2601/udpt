@@ -7,7 +7,6 @@ spring:
 
   cloud:
     gateway:
-
       globalcors:
         add-to-simple-url-handler-mapping: true
         corsConfigurations:
@@ -45,6 +44,16 @@ spring:
             - Path=/api/bookings/**
           filters:
             - StripPrefix=1
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+                methods: GET, POST, PUT, DELETE
+                backoff:
+                  firstBackoff: 50ms
+                  maxBackoff: 500ms
+                  factor: 2
+                  basedOnPreviousValue: false
 
         - id: room-service
           uri: http://localhost:8083
@@ -52,10 +61,44 @@ spring:
             - Path=/api/rooms/**
           filters:
             - StripPrefix=1
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+                methods: GET, POST, PUT, DELETE
+                backoff:
+                  firstBackoff: 50ms
+                  maxBackoff: 500ms
+                  factor: 2
+                  basedOnPreviousValue: false
 
         - id: payment-service
           uri: http://localhost:8084
           predicates:
             - Path=/api/payments/**
           filters:
-             - StripPrefix=1
+            - StripPrefix=1
+
+# ACTUATOR & MONITORING
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# LOAD BALANCER CONFIG
+gateway:
+  lb:
+    room-service:
+      instances: ${ROOM_INSTANCES:http://localhost:8083,http://localhost:8085}
+    booking-service:
+      instances: ${BOOKING_INSTANCES:http://localhost:8082,http://localhost:8086}
+    user-service:
+      instances: ${USER_INSTANCES:http://localhost:8081}
+    auth-service:
+      instances: ${AUTH_INSTANCES:http://localhost:8080}
+    payment-service:
+      instances: ${PAYMENT_INSTANCES:http://localhost:8084}

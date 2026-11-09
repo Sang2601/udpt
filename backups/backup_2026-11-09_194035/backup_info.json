@@ -1,0 +1,35 @@
+﻿{
+    "backupName":  "backup_2026-11-09_194035",
+    "createdAt":  "2026-11-09T19:40:40.1977700+07:00",
+    "totalDatabases":  4,
+    "masterSqlFile":  "backup_2026-11-09_194035.sql",
+    "masterSizeBytes":  4031,
+    "masterSha256":  "6779FA491ABD277595E2DB2B2A3C1714145242DC3F8DB76786A22D64C212AE19",
+    "databases":  [
+                      {
+                          "database":  "userdb",
+                          "fileName":  "userdb.sql",
+                          "sizeBytes":  896,
+                          "sha256":  "1BA289CB5DB953B0D2CD8426D0342503B9CF5D67BE038B21A3A61C55DB26B706"
+                      },
+                      {
+                          "database":  "roomdb",
+                          "fileName":  "roomdb.sql",
+                          "sizeBytes":  1344,
+                          "sha256":  "3E5D9D8A7888B01B5D972A8DE7BB445BC8ADD7685E1A15A2931987A77A1DC3DD"
+                      },
+                      {
+                          "database":  "bookingdb",
+                          "fileName":  "bookingdb.sql",
+                          "sizeBytes":  624,
+                          "sha256":  "3BB6AB073613FBA32C580F82016AD3101A70345143523A78EA778CE149B8988D"
+                      },
+                      {
+                          "database":  "paymentdb",
+                          "fileName":  "paymentdb.sql",
+                          "sizeBytes":  592,
+                          "sha256":  "518B392C8A3008E8D865B30C17022B751AD0A17665D5D7775C5C5424C4335BDD"
+                      }
+                  ],
+    "status":  "SUCCESS"
+}

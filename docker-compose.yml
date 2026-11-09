@@ -1,0 +1,159 @@
+version: '3.8'
+
+networks:
+  hotel-network:
+    driver: bridge
+
+volumes:
+  hotel-data:
+    driver: local
+
+services:
+  # ==========================================
+  # API GATEWAY (LOAD BALANCER & ROUTING)
+  # ==========================================
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8088:8088"
+    environment:
+      - ROOM_INSTANCES=http://room-service-1:8083,http://room-service-2:8083
+      - BOOKING_INSTANCES=http://booking-service-1:8082,http://booking-service-2:8082
+      - USER_INSTANCES=http://user-service:8081
+      - AUTH_INSTANCES=http://auth-service:8080
+      - PAYMENT_INSTANCES=http://payment-service:8084
+    networks:
+      - hotel-network
+    restart: unless-stopped
+    depends_on:
+      - auth-service
+      - user-service
+      - room-service-1
+      - booking-service-1
+
+  # ==========================================
+  # AUTH SERVICE
+  # ==========================================
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "8080:8080"
+    networks:
+      - hotel-network
+    restart: unless-stopped
+
+  # ==========================================
+  # USER SERVICE
+  # ==========================================
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./data:/app/data
+    networks:
+      - hotel-network
+    restart: unless-stopped
+
+  # ==========================================
+  # ROOM SERVICE - INSTANCE 1
+  # ==========================================
+  room-service-1:
+    build:
+      context: ./services/room-service
+      dockerfile: Dockerfile
+    container_name: room-service-1
+    ports:
+      - "8083:8083"
+    volumes:
+      - ./data:/app/data
+    networks:
+      - hotel-network
+    restart: unless-stopped
+
+  # ==========================================
+  # ROOM SERVICE - INSTANCE 2 (SCALED)
+  # ==========================================
+  room-service-2:
+    build:
+      context: ./services/room-service
+      dockerfile: Dockerfile
+    container_name: room-service-2
+    ports:
+      - "8085:8083"
+    volumes:
+      - ./data:/app/data
+    networks:
+      - hotel-network
+    restart: unless-stopped
+
+  # ==========================================
+  # BOOKING SERVICE - INSTANCE 1
+  # ==========================================
+  booking-service-1:
+    build:
+      context: ./services/booking-service
+      dockerfile: Dockerfile
+    container_name: booking-service-1
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./data:/app/data
+    networks:
+      - hotel-network
+    restart: unless-stopped
+
+  # ==========================================
+  # BOOKING SERVICE - INSTANCE 2 (SCALED)
+  # ==========================================
+  booking-service-2:
+    build:
+      context: ./services/booking-service
+      dockerfile: Dockerfile
+    container_name: booking-service-2
+    ports:
+      - "8086:8082"
+    volumes:
+      - ./data:/app/data
+    networks:
+      - hotel-network
+    restart: unless-stopped
+
+  # ==========================================
+  # PAYMENT SERVICE
+  # ==========================================
+  payment-service:
+    build:
+      context: ./services/payment-service
+      dockerfile: Dockerfile
+    container_name: payment-service
+    ports:
+      - "8084:8084"
+    volumes:
+      - ./data:/app/data
+    networks:
+      - hotel-network
+    restart: unless-stopped
+
+  # ==========================================
+  # FRONTEND (NGINX STATIC HOST)
+  # ==========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: hotel-frontend
+    ports:
+      - "5500:80"
+    networks:
+      - hotel-network
+    restart: unless-stopped

@@ -1,6 +1,7 @@
 # Maven
 target/
 *.jar
+!lib/h2.jar
 *.war
 
 # IDE
@@ -10,8 +11,13 @@ target/
 
 # OS
 .DS_Store
+Thumbs.db
 
 # Runtime & Logs
 logs/
 *.log
 running-processes.json
+
+# Runtime Database Files
+data/
+oracleJdk-27/
